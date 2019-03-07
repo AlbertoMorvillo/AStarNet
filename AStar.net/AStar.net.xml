@@ -1,0 +1,452 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AStar.net</name>
+    </assembly>
+    <members>
+        <member name="T:AStarNet.INode`1">
+            <summary>
+            Contains data to manage the nodes for the A* algorithm.
+            </summary>
+        </member>
+        <member name="P:AStarNet.INode`1.ID">
+            <summary>
+            Gets the identifier for this node.
+            </summary>
+        </member>
+        <member name="P:AStarNet.INode`1.Parent">
+            <summary>
+            Gets the <see cref="T:AStarNet.Node`1"/> used during the search to record the parent of successor nodes.
+            </summary>
+        </member>
+        <member name="P:AStarNet.INode`1.Cost">
+            <summary>
+            Gets the cost of this node.
+            </summary>
+        </member>
+        <member name="P:AStarNet.INode`1.PathCost">
+            <summary>
+            Gets the cost of the path from the start to this node (G).
+            </summary>
+        </member>
+        <member name="P:AStarNet.INode`1.HeuristicDistance">
+            <summary>
+            Gets the heuristic estimate of distance to goal (H).
+            </summary>
+        </member>
+        <member name="P:AStarNet.INode`1.PathScore">
+            <summary>
+            Gets the sum of cumulative cost of predecessors and self and heuristic (F).
+            </summary>
+        </member>
+        <member name="P:AStarNet.INode`1.Content">
+            <summary>
+            Gets or sets the <typeparamref name="T"/> content of this node.
+            </summary>
+        </member>
+        <member name="M:AStarNet.INode`1.CopyWithoutParent">
+            <summary>
+            Create a new <see cref="T:AStarNet.Node`1"/> with the same ID, cost, heuristic distance and content of this one.
+            </summary>
+            <returns>A new <see cref="T:AStarNet.Node`1"/> with the same ID, cost, heuristic distance and content of this one.</returns>
+        </member>
+        <member name="T:AStarNet.INodeMap`1">
+            <summary>
+            Defines generalized methods to allow the use of A* algorithm on a data structure
+            </summary>
+        </member>
+        <member name="M:AStarNet.INodeMap`1.GetStartNode">
+            <summary>
+            Get the start <see cref="T:AStarNet.Node`1"/> in the map
+            </summary>
+            <returns>The start <see cref="T:AStarNet.Node`1"/> in the map</returns>
+        </member>
+        <member name="M:AStarNet.INodeMap`1.GetDestinationNode">
+            <summary>
+            Get the destination <see cref="T:AStarNet.Node`1"/> in the map
+            </summary>
+            <returns>The destination <see cref="T:AStarNet.Node`1"/> in the map</returns>
+        </member>
+        <member name="M:AStarNet.INodeMap`1.GetChildNodes(AStarNet.Node{`0})">
+            <summary>
+            Get the childs of a specific <see cref="T:AStarNet.Node`1"/> in the map
+            </summary>
+            <param name="currentNode">The <see cref="T:AStarNet.Node`1"/> from which get the childs</param>
+            <returns>A <see cref="!:Node"/> array with the childs of the specific <see cref="T:AStarNet.Node`1"/> in the map</returns>
+        </member>
+        <member name="T:AStarNet.IPath`1">
+            <summary>
+            Contains the node sequence which defines the path, sorted from start to destination node.
+            </summary>
+            <typeparam name="T">Type of the node content.</typeparam>
+        </member>
+        <member name="P:AStarNet.IPath`1.Cost">
+            <summary>
+            Gets the cost of this path.
+            </summary>
+        </member>
+        <member name="P:AStarNet.IPath`1.Nodes">
+            <summary>
+            Gets the nodes in this path.
+            </summary>
+        </member>
+        <member name="P:AStarNet.IPath`1.Tag">
+            <summary>
+            Gets or sets the generic tag of this path.
+            </summary>
+        </member>
+        <member name="M:AStarNet.IPath`1.Add(AStarNet.Path{`0})">
+            <summary>
+            Adds a path to this path.
+            </summary>
+            <param name="path">Another <see cref="T:AStarNet.Path`1"/> which will be added in this path.</param>
+        </member>
+        <member name="T:AStarNet.Node`1">
+            <summary>
+            Contains data to manage the nodes for the A* algorithm.
+            </summary>
+        </member>
+        <member name="P:AStarNet.Node`1.ID">
+            <summary>
+            Gets the identifier for this node.
+            </summary>
+        </member>
+        <member name="P:AStarNet.Node`1.Parent">
+            <summary>
+            Gets the <see cref="T:AStarNet.Node`1"/> used during the search to record the parent of successor nodes.
+            </summary>
+        </member>
+        <member name="P:AStarNet.Node`1.Cost">
+            <summary>
+            Gets the cost of this node.
+            </summary>
+        </member>
+        <member name="P:AStarNet.Node`1.PathCost">
+            <summary>
+            Gets the cost of the path from the start to this node (G).
+            </summary>
+        </member>
+        <member name="P:AStarNet.Node`1.HeuristicDistance">
+            <summary>
+            Gets the heuristic estimate of distance to goal (H).
+            </summary>
+        </member>
+        <member name="P:AStarNet.Node`1.PathScore">
+            <summary>
+            Gets the sum of cumulative cost of predecessors and self and heuristic (F).
+            </summary>
+        </member>
+        <member name="P:AStarNet.Node`1.Content">
+            <summary>
+            Gets or sets the <typeparamref name="T"/> content of this node.
+            </summary>
+        </member>
+        <member name="M:AStarNet.Node`1.#ctor(System.Guid,`0)">
+            <summary>
+            Creates a new instance of a <see cref="T:AStarNet.Node`1"/>.
+            </summary>
+            <param name="nodeGuid"><see cref="T:System.Guid"/> of this node.</param>
+            <param name="content">The <typeparamref name="T"/> content of this node.</param>
+        </member>
+        <member name="M:AStarNet.Node`1.#ctor(System.Guid,`0,AStarNet.Node{`0},System.Double,System.Double)">
+            <summary>
+            Creates a new instance of a node.
+            </summary>
+            <param name="nodeGuid"><see cref="T:System.Guid"/> of this node.</param>
+            <param name="content">The <typeparamref name="T"/> content of this node.</param>
+            <param name="parent">Parent <see cref="T:AStarNet.Node`1"/>.</param>
+            <param name="cost">Cost from parent node.</param>
+            <param name="heuristicDistance">Heuristic distance from the destination node.</param>
+        </member>
+        <member name="M:AStarNet.Node`1.CopyWithoutParent">
+            <summary>
+            Create a new <see cref="T:AStarNet.Node`1"/> with the same ID, cost, heuristic distance and content of this one.
+            </summary>
+            <returns>A new <see cref="T:AStarNet.Node`1"/> with the same ID, cost, heuristic distance and content of this one.</returns>
+        </member>
+        <member name="M:AStarNet.Node`1.CompareTo(AStarNet.Node{`0})">
+            <summary>
+            Compares first the path score then the path cost of this node with another one.
+            </summary>
+            <param name="other">Other <see cref="T:AStarNet.Node`1"/> to compare.</param>
+            <returns>
+            <para>Less than zero: This node as the path score less than other node or the path score equal and the current cost less than other node.</para>
+            <para>Zero: This node has the path score and the current cost equal to other node.</para>
+            <para>Greater than zero: This node as the path score greater than other node or the path score equal ant the current cost greater than other node.</para>
+            </returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="other"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="M:AStarNet.Node`1.Equals(AStarNet.Node{`0})">
+            <summary>
+            Returns a value indicating whether this istance and a specific <see cref="T:AStarNet.Node`1"/> rappresent the same node.
+            </summary>
+            <param name="other">Other <see cref="T:AStarNet.Node`1"/> istance.</param>
+            <returns>True if this and the other istance rappresent the same node.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="other"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="T:AStarNet.Path`1">
+            <summary>
+            Contains the node sequence which defines the path, sorted from start to destination node.
+            </summary>
+            <typeparam name="T">Type of the node content.</typeparam>
+        </member>
+        <member name="P:AStarNet.Path`1.Cost">
+            <summary>
+            Gets the cost of this path.
+            </summary>
+        </member>
+        <member name="P:AStarNet.Path`1.Nodes">
+            <summary>
+            Gets the nodes in this path.
+            </summary>
+        </member>
+        <member name="P:AStarNet.Path`1.Tag">
+            <summary>
+            Gets or sets the generic tag of this path.
+            </summary>
+        </member>
+        <member name="M:AStarNet.Path`1.#ctor">
+            <summary>
+            Creates a new instance of a <see cref="T:AStarNet.Path`1"/>.
+            </summary>
+        </member>
+        <member name="M:AStarNet.Path`1.#ctor(`0[],System.Double)">
+            <summary>
+            Creates a new instance of a <see cref="T:AStarNet.Path`1"/>.
+            </summary>
+            <param name="nodes"><typeparamref name="T"/> array containing the sorted node contents of this path, from start to destination.</param>
+            <param name="cost">The cost of this path.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="nodes"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="M:AStarNet.Path`1.#ctor(System.Collections.Generic.IList{AStarNet.Node{`0}},System.Double)">
+            <summary>
+            Creates a new instance of a path.
+            </summary>
+            <param name="nodes"><see cref="T:AStarNet.Node`1"/> list containing the sorted nodes of this path, from start to destination.</param>
+            <param name="cost">The cost of this path.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="nodes"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="M:AStarNet.Path`1.#ctor(AStarNet.Path{`0}[])">
+            <summary>
+            Creates a new instance of a path.
+            </summary>
+            <param name="segments"><see cref="T:AStarNet.Path`1"/> array containing path segments.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="segments"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="M:AStarNet.Path`1.Add(AStarNet.Path{`0})">
+            <summary>
+            Adds a path to this path.
+            </summary>
+            <param name="path">Another <see cref="T:AStarNet.Path`1"/> which will be added in this path.</param>
+        </member>
+        <member name="M:AStarNet.Path`1.CompareTo(AStarNet.IPath{`0})">
+            <summary>
+            Compares first the cost then the length of this path with another one.
+            </summary>
+            <param name="other">Other <see cref="T:AStarNet.Path`1"/> to compare.</param>
+            <returns>
+            <para>Less than zero: This path has the cost less than other path or the cost equal and the length less than other path.</para>
+            <para>Zero: This path has the cost and the length equal to other node.</para>
+            <para>Greater than zero: This path has the cost greater than other node or the cost equal and the length greater than the other path.</para>
+            </returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="other"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="M:AStarNet.Path`1.Equals(AStarNet.IPath{`0})">
+            <summary>
+            Returns a value indicating whether this istance and a specific <see cref="T:AStarNet.Path`1"/> rappresent the same path.
+            </summary>
+            <param name="other">Other <see cref="T:AStarNet.Path`1"/> istance.</param>
+            <returns>True if this and the other istance rappresent the same path.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="other"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="T:AStarNet.PathsFoundEventHandler`1">
+            <summary>
+            Delegate for path found event on async finding.
+            </summary>
+            <typeparam name="T">Type of the node content.</typeparam>
+            <param name="paths">Result path.</param>
+        </member>
+        <member name="T:AStarNet.PathFinder`1">
+            <summary>
+            Implements function to find a path with the A* algorithm.
+            </summary>
+            <typeparam name="T">Type of the node content.</typeparam>
+        </member>
+        <member name="T:AStarNet.PathFinder`1.SearchState">
+            <summary>
+            Search state enumeration used to manage the search function.
+            </summary>
+        </member>
+        <member name="T:AStarNet.PathFinder`1.FindPathAsynchParams`1">
+            <summary>
+            Structure used to store the find thread parameters.
+            </summary>
+            <typeparam name="TContent">Type of the node content.</typeparam>
+        </member>
+        <member name="T:AStarNet.PathFinder`1.OpenClosedNodeCollection`1">
+            <summary>
+            Contains the lists of nodes that could be visited or must be ignored.
+            </summary>
+            <typeparam name="TContent">Type of the node content.</typeparam>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.OpenClosedNodeCollection`1.#ctor">
+            <summary>
+            Creates a new instance of the <see cref="T:AStarNet.PathFinder`1.OpenClosedNodeCollection`1"/>.
+            </summary>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.OpenClosedNodeCollection`1.AddOpen(AStarNet.Node{`1})">
+            <summary>
+            Adds a node to the open list (nodes that could be visited).
+            </summary>
+            <param name="node">Node to add to the open list.</param>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.OpenClosedNodeCollection`1.AddClosed(AStarNet.Node{`1})">
+            <summary>
+            Adds a node to the closed list (nodes that must not be considered).
+            </summary>
+            <param name="node">Node to add to the close list.</param>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.OpenClosedNodeCollection`1.GetNearestNode">
+            <summary>
+            Gets the nearest node to the destination.
+            </summary>
+        </member>
+        <member name="F:AStarNet.PathFinder`1._threadDictionary">
+            <summary>
+            Dictionary used to manage the open threads for multi-threading.
+            </summary>
+        </member>
+        <member name="E:AStarNet.PathFinder`1.PathsFound">
+            <summary>
+            Occurs when the asynch path finding function return.
+            </summary>
+        </member>
+        <member name="P:AStarNet.PathFinder`1.NodeMap">
+            <summary>
+            Gets the <see cref="!:INodeMap&lt;T&gt;/>"/> where to find the path.
+            </summary>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.#ctor(AStarNet.INodeMap{`0})">
+            <summary>
+            Creates a new istance of <see cref="T:AStarNet.PathFinder`1"/>.
+            </summary>
+            <param name="nodeMap">Node map where to find a path.</param>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.DoFindBestPathAsynch(System.Object)">
+            <summary>
+            Function working as a new thread used to launch dhe FindBestPath method asynchronously.
+            </summary>
+            <param name="param"><see cref="T:AStarNet.PathFinder`1.FindPathAsynchParams`1"/> casted to <see cref="T:System.Object"/>.</param>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.DoFindAllPathsAsynch(System.Object)">
+            <summary>
+            Function working as a new thread used to launch dhe FindAllPaths method asynchronously.
+            </summary>
+            <param name="param"><see cref="T:AStarNet.PathFinder`1.FindPathAsynchParams`1"/> casted to <see cref="T:System.Object"/>.</param>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.FindBestPath">
+            <summary>
+            Find the best path between map start point and destination point.
+            </summary>
+            <returns>A <see cref="T:AStarNet.Path`1"/> containing all the nodes defines the path, from start to destination.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when no start or destination node are given in the map.</exception>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.FindAllPaths">
+            <summary>
+            Find all the paths avalaible between map start point and destination point.
+            </summary>
+            <returns>A <see cref="T:AStarNet.Path`1"/> array containing all the paths avalaible from start to destination.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when no start or destination node are given in the map.</exception>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.FindBestPathAsynch">
+            <summary>
+            Find the best path between map start point and destination point asynchronously.
+            </summary>
+            <returns>Async operation <see cref="T:System.Guid"/>.</returns>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.FindAllPathsAsynch">
+            <summary>
+            Find all the paths avalaible between map start point and destination point asynchronously.
+            </summary>
+            <returns>Async operation <see cref="T:System.Guid"/>.</returns>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.GetAsynchOperationStatus(System.Guid)">
+            <summary>
+            Gets the asynch operation status.
+            </summary>
+            <param name="operationID">Asynch operation ID for which get the status.</param>
+            <returns></returns>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.StopAsynchOperation(System.Guid)">
+            <summary>
+            Stop a specific asynch operation.
+            </summary>
+            <param name="operationID">Asynch find istance <see cref="T:System.Guid"/>.</param>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.StopAllAsynchOperations">
+            <summary>
+            Stop all asynch operations.
+            </summary>
+        </member>
+        <member name="T:AStarNet.SegmentedPath`1">
+            <summary>
+            Contains a collection of <see cref="T:AStarNet.IPath`1"/> segments which defines the path, sorted from start to destination node.
+            </summary>
+            <typeparam name="T">Type of the node content.</typeparam>
+        </member>
+        <member name="P:AStarNet.SegmentedPath`1.Cost">
+            <summary>
+            Gets the cost of this path.
+            </summary>
+        </member>
+        <member name="P:AStarNet.SegmentedPath`1.Segments">
+            <summary>
+            Gets the segments in this path.
+            </summary>
+        </member>
+        <member name="M:AStarNet.SegmentedPath`1.#ctor">
+            <summary>
+            Creates a new instance of a <see cref="T:AStarNet.SegmentedPath`1"/>.
+            </summary>
+        </member>
+        <member name="M:AStarNet.SegmentedPath`1.#ctor(AStarNet.IPath{`0}[])">
+            <summary>
+            Creates a new instance of a <see cref="T:AStarNet.SegmentedPath`1"/>.
+            </summary>
+            <param name="segments"><see cref="T:AStarNet.IPath`1"/> array containing path segments.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="segments"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="M:AStarNet.SegmentedPath`1.Add(AStarNet.IPath{`0})">
+            <summary>
+            Adds a segment to this path.
+            </summary>
+            <param name="path"><see cref="T:AStarNet.IPath`1"/> segment which will be added in this path.</param>
+        </member>
+        <member name="M:AStarNet.SegmentedPath`1.Add(AStarNet.IPath{`0}[])">
+            <summary>
+            Adds more segments to this path.
+            </summary>
+            <param name="path"><see cref="T:AStarNet.IPath`1"/> segment array which will be added in this path.</param>
+        </member>
+        <member name="M:AStarNet.SegmentedPath`1.CompareTo(AStarNet.SegmentedPath{`0})">
+            <summary>
+            Compares the cost of this path with another one.
+            </summary>
+            <param name="other">Other <see cref="T:AStarNet.SegmentedPath`1"/> to compare.</param>
+            <returns>
+            <para>Less than zero: This path has the cost less than other path.</para>
+            <para>Zero: This path has the cost equal to other node.</para>
+            <para>Greater than zero: This path has the cost greater than other node.</para>
+            </returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="other"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="M:AStarNet.SegmentedPath`1.Equals(AStarNet.SegmentedPath{`0})">
+            <summary>
+            Returns a value indicating whether this istance and a specific <see cref="T:AStarNet.SegmentedPath`1"/> rappresent the same path.
+            </summary>
+            <param name="other">Other <see cref="T:AStarNet.SegmentedPath`1"/> istance.</param>
+            <returns>True if this and the other istance rappresent the same path.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="other"/> is <see langword="null"/>.</exception>
+        </member>
+    </members>
+</doc>
