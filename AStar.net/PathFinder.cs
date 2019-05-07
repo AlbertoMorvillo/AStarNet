@@ -163,14 +163,17 @@ namespace AStarNet
 
         #region Fields
 
-        protected readonly INodeMap<T> _nodeMap;    // Node map where to find the path
+        /// <summary>
+        /// Node map where to find the path.
+        /// </summary>
+        protected readonly INodeMap<T> _nodeMap;
 
         #endregion
 
         #region Properties
 
         /// <summary>
-        /// Gets the <see cref="INodeMap{T}/>"/> where to find the path.
+        /// Gets the <see cref="INodeMap{T}"/> where to find the path.
         /// </summary>
         public INodeMap<T> NodeMap
         {
@@ -226,6 +229,75 @@ namespace AStarNet
             this._threadDictionary.Remove(findParams.OperationID);
         }
 
+        /// <summary>
+        /// Compute a pass to find the path. It must be cycled untill the result is <see cref="SearchState.Found"/>.
+        /// </summary>
+        /// <param name="destinationNode">Destination <see cref="Node{T}"/>.</param>
+        /// <param name="actualNode">Actual visited <see cref="Node{T}"/>.</param>
+        /// <param name="nodeCollection">Collection containing the nodes that can be visited or must be ignored.</param>
+        /// <returns>The result of the path finding.</returns>
+        private SearchState ComputeFindPath(Node<T> destinationNode, ref Node<T> actualNode, ref OpenClosedNodeCollection<T> nodeCollection)
+        {
+            SearchState searchResult = SearchState.Searching;       // Flag used to let the function cycle
+            Node<T>[] childNodes = null;                            // Array of child nodes
+            Node<T> nearestNode = null;                             // Node nearest to the actual node
+
+            // Destination reached, stopping the search
+            if (actualNode.Equals(destinationNode))
+            {
+                searchResult = SearchState.Found;
+                return searchResult;
+            }
+
+            // Get the child nodes 
+            childNodes = this.NodeMap.GetChildNodes(actualNode);
+
+            // Adding actual node to the closed list
+            nodeCollection.AddClosed(actualNode);
+
+            // Analizing child nodes
+            if (childNodes.Length > 0)
+            {
+                for (int i = 0; i < childNodes.Length; i++)
+                {
+                    // Add child node the the open list
+                    nodeCollection.AddOpen(childNodes[i]);
+                }
+
+                // Getting the nearest node
+                nearestNode = nodeCollection.GetNearestNode();
+
+                if (nearestNode != null)
+                {
+                    actualNode = nearestNode;
+                }
+                else
+                {
+                    // No open nodes, going backward
+                    actualNode = actualNode.Parent;
+
+                    // No path avalaible, stopping the search
+                    if (actualNode == null)
+                    {
+                        searchResult = SearchState.NotFound;
+                    }
+                }
+            }
+            else
+            {
+                // No child nodes, going backward
+                actualNode = actualNode.Parent;
+
+                // No path avalaible, stopping the search
+                if (actualNode == null)
+                {
+                    searchResult = SearchState.NotFound;
+                }
+            }
+
+            return searchResult;
+        }
+
         #endregion
 
         #region Public methods
@@ -237,19 +309,15 @@ namespace AStarNet
         /// <exception cref="ArgumentNullException">Thrown when no start or destination node are given in the map.</exception>
         public Path<T> FindBestPath()
         {
+            Node<T> startNode = null;                               // Start node from which begin the navigation
+            Node<T> destinationNode = null;                         // Destination node to be reached
+            Node<T> actualNode = null;                              // Actual visited node
+            Path<T> resultPath = null;                              // Result path
 
-            Node<T> startNode = null;                             // Start node from which begin the navigation
-            Node<T> destinationNode = null;                       // Destination node to be reached
-            Node<T> actualNode = null;                            // Actual visited node
-            Path<T> resultPath = null;                            // Result path
-
-            Node<T>[] childNodes = null;                          // Array of child nodes
-            Node<T> nearestNode = null;                           // Node nearest to the actual node
-            SearchState searchResult = SearchState.Searching;     // Flag used to let the function cycle
-            OpenClosedNodeCollection<T> nodeCollection = null;    // Collection containing the nodes that can be visited or must be ignored
-
-            List<Node<T>> pathNodeList = null;                    // List of node that defines the path
-            double resultPathCost = 0;                            // Cost of the result path
+            SearchState searchResult = SearchState.Searching;       // Flag used to let the function cycle
+            OpenClosedNodeCollection<T> nodeCollection = null;      // Collection containing the nodes that can be visited or must be ignored
+            List<Node<T>> pathNodeList = null;                      // List of node that defines the path
+            double resultPathCost = 0;                              // Cost of the result path
             
 
             // Get the start node from the node map
@@ -260,14 +328,10 @@ namespace AStarNet
 
             // Throw an exception if there are no starting or destination node
             if (startNode == null)
-            {
                 throw new ArgumentNullException(nameof(startNode));
-            }
 
             if (destinationNode == null)
-            {
                 throw new ArgumentNullException(nameof(destinationNode));
-            }
 
             // Initialize che collections
             pathNodeList = new List<Node<T>>();
@@ -279,64 +343,16 @@ namespace AStarNet
             // Begin the search
             do
             {
-                // Get the child nodes 
-                childNodes = this.NodeMap.GetChildNodes(actualNode);
-
-                // Adding actual node to the closed list
-                nodeCollection.AddClosed(actualNode);
-
-                // Analizing child nodes
-                if (childNodes.Length > 0)
-                {
-                    for (int i = 0; i < childNodes.Length; i++)
-                    {
-                        // Add child node the the open list
-                        nodeCollection.AddOpen(childNodes[i]);
-                    }
-
-                    // Getting the nearest node
-                    nearestNode = nodeCollection.GetNearestNode();
-
-                    if (nearestNode != null)
-                    {
-                        actualNode = nearestNode;
-
-                        // Destination reached, stopping the search
-                        if (actualNode.Equals(destinationNode))
-                        {
-                            searchResult = SearchState.Found;
-                            resultPathCost = actualNode.PathCost;
-                        }
-                    }
-                    else
-                    {
-                        // No open nodes, going backward
-                        actualNode = actualNode.Parent;
-
-                        // No path avalaible, stopping the search
-                        if (actualNode == null)
-                        {
-                            searchResult = SearchState.NotFound;
-                        }
-                    }
-                }
-                else
-                {
-                    // No child nodes, going backward
-                    actualNode = actualNode.Parent;
-
-                    // No path avalaible, stopping the search
-                    if (actualNode == null)
-                    {
-                        searchResult = SearchState.NotFound;
-                    }
-                }
+                searchResult = this.ComputeFindPath(destinationNode, ref actualNode, ref nodeCollection);
             }
             while (searchResult == SearchState.Searching);
 
             // Create the path if destination as been reached
             if (searchResult == SearchState.Found)
             {
+                // Destination reached, saving the search
+                resultPathCost = actualNode.PathCost;
+
                 // Pupulate the list. Starting node must be the first in the list
                 while (actualNode != null)
                 {
@@ -358,96 +374,60 @@ namespace AStarNet
         /// <exception cref="ArgumentNullException">Thrown when no start or destination node are given in the map.</exception>
         public Path<T>[] FindAllPaths()
         {
-            List<Node<T>> pathNodeList = new List<Node<T>>();              // List of node that defines the path
-            Node<T> startNode = this.NodeMap.GetStartNode();               // Node from which start the path search
-            Node<T> destinationNode = this.NodeMap.GetDestinationNode();   // Destination node to be reached
-            Node<T> actualNode = startNode;                                // Actual visited node (beginning from starting node)
-            Path<T> foundPath = null;                                      // Path found by a search
-            double foundPathCost = 0;                                      // Cost of the found path
-            List<Path<T>> resultPathList = new List<Path<T>>();            // List of paths found by all the search cycles
+            Node<T> startNode = null;                               // Start node from which begin the navigation
+            Node<T> destinationNode = null;                         // Destination node to be reached
+            Node<T> actualNode = null;                              // Actual visited node
+            Path<T> foundPath = null;                               // Path found by a search
+            List<Path<T>> resultPathList = new List<Path<T>>();     // List of paths found by all the search cycles
+
+            SearchState searchResult = SearchState.Searching;       // Flag used to let the function cycle
+            OpenClosedNodeCollection<T> nodeCollection = null;      // Collection containing the nodes that can be visited or must be ignored
+            List<Node<T>> pathNodeList = null;                      // List of node that defines the path
+            double foundPathCost = 0;                               // Cost of the found path
+            
+
+            // Get the start node from the node map
+            startNode = this.NodeMap.GetStartNode();
+
+            // Get the destination node from the node map
+            destinationNode = this.NodeMap.GetDestinationNode();
 
             // Throw an exception if there are no starting or destination node
-            if (actualNode == null)
-            {
+            if (startNode == null)
                 throw new ArgumentNullException(nameof(startNode));
-            }
 
             if (destinationNode == null)
-            {
                 throw new ArgumentNullException(nameof(destinationNode));
-            }
 
-            Node<T>[] childNodes = null;                                                      // Array of child nodes
-            Node<T> nearestNode = null;                                                       // Node nearest to the actual node
-            SearchState searchResult = SearchState.Searching;                                 // Flag used to let the function cycle
-            OpenClosedNodeCollection<T> nodeCollection = new OpenClosedNodeCollection<T>();   // Collection containing the nodes that can be visited or must be ignored
+            // Initialize che collections
+            pathNodeList = new List<Node<T>>();
+            nodeCollection = new OpenClosedNodeCollection<T>();
+
+            // Begin from the start node
+            actualNode = startNode;
 
             // Begin the search
             do
             {
-                // Get the child nodes 
-                childNodes = this.NodeMap.GetChildNodes(actualNode);
+                searchResult = this.ComputeFindPath(destinationNode, ref actualNode, ref nodeCollection);
 
-                // Adding actual node to the closed list
-                nodeCollection.AddClosed(actualNode);
-
-                // Analizing child nodes
-                if (childNodes.Length > 0)
+                if (searchResult == SearchState.Found)
                 {
-                    for (int i = 0; i < childNodes.Length; i++)
+                    // Destination reached, saving the search
+                    foundPathCost = actualNode.PathCost;
+
+                    // Pupulate the list. Starting node must be the first in the list
+                    while (actualNode != null)
                     {
-                        // Add child node the the open list
-                        nodeCollection.AddOpen(childNodes[i]);
-                    }
-
-                    // Getting the nearest node
-                    nearestNode = nodeCollection.GetNearestNode();
-
-                    if (nearestNode != null)
-                    {
-                        actualNode = nearestNode;
-
-                        // Destination reached, saving the search
-                        if (actualNode.Equals(destinationNode))
-                        {
-                            foundPathCost = actualNode.PathCost;
-
-                            // Pupulate the list. Starting node must be the first in the list
-                            while (actualNode != null)
-                            {
-                                pathNodeList.Insert(0, actualNode);
-                                actualNode = actualNode.Parent;
-                            }
-
-                            // Populate and found path
-                            foundPath = new Path<T>(pathNodeList, foundPathCost);
-
-                            // Reset the search
-                            actualNode = startNode;
-                        }
-                    }
-                    else
-                    {
-                        // No open nodes, going backward
+                        pathNodeList.Insert(0, actualNode);
                         actualNode = actualNode.Parent;
-
-                        // No path avalaible, stopping the search
-                        if (actualNode == null)
-                        {
-                            searchResult = SearchState.NotFound;
-                        }
                     }
-                }
-                else
-                {
-                    // No child nodes, going backward
-                    actualNode = actualNode.Parent;
 
-                    // No path avalaible, stopping the search
-                    if (actualNode == null)
-                    {
-                        searchResult = SearchState.NotFound;
-                    }
+                    // Populate and found path
+                    foundPath = new Path<T>(pathNodeList, foundPathCost);
+
+                    // Reset the search
+                    actualNode = startNode;
                 }
             }
             while (searchResult == SearchState.Searching);

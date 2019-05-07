@@ -321,9 +321,14 @@
             Occurs when the asynch path finding function return.
             </summary>
         </member>
+        <member name="F:AStarNet.PathFinder`1._nodeMap">
+            <summary>
+            Node map where to find the path.
+            </summary>
+        </member>
         <member name="P:AStarNet.PathFinder`1.NodeMap">
             <summary>
-            Gets the <see cref="!:INodeMap&lt;T&gt;/>"/> where to find the path.
+            Gets the <see cref="T:AStarNet.INodeMap`1"/> where to find the path.
             </summary>
         </member>
         <member name="M:AStarNet.PathFinder`1.#ctor(AStarNet.INodeMap{`0})">
@@ -343,6 +348,15 @@
             Function working as a new thread used to launch dhe FindAllPaths method asynchronously.
             </summary>
             <param name="param"><see cref="T:AStarNet.PathFinder`1.FindPathAsynchParams`1"/> casted to <see cref="T:System.Object"/>.</param>
+        </member>
+        <member name="M:AStarNet.PathFinder`1.ComputeFindPath(AStarNet.Node{`0},AStarNet.Node{`0}@,AStarNet.PathFinder{`0}.OpenClosedNodeCollection{`0}@)">
+            <summary>
+            Compute a pass to find the path. It must be cycled untill the result is <see cref="F:AStarNet.PathFinder`1.SearchState.Found"/>.
+            </summary>
+            <param name="destinationNode">Destination <see cref="T:AStarNet.Node`1"/>.</param>
+            <param name="actualNode">Actual visited <see cref="T:AStarNet.Node`1"/>.</param>
+            <param name="nodeCollection">Collection containing the nodes that can be visited or must be ignored.</param>
+            <returns>The result of the path finding.</returns>
         </member>
         <member name="M:AStarNet.PathFinder`1.FindBestPath">
             <summary>
