@@ -14,6 +14,7 @@ namespace AStarNet
     /// </summary>
     /// <typeparam name="T">Type of the node content.</typeparam>
     /// <param name="paths">Result path.</param>
+    /// <param name="operationID">Identifier of the operation which is searching for a path.</param>
     public delegate void PathsFoundEventHandler<T>(Path<T>[] paths, Guid operationID);
 
     /// <summary>
@@ -306,7 +307,7 @@ namespace AStarNet
         /// Find the best path between map start point and destination point.
         /// </summary>
         /// <returns>A <see cref="Path{T}"/> containing all the nodes defines the path, from start to destination.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when no start or destination node are given in the map.</exception>
+        /// <exception cref="ArgumentNullException">No start or destination node are given in the map.</exception>
         public Path<T> FindBestPath()
         {
             Node<T> startNode = null;                               // Start node from which begin the navigation
@@ -371,7 +372,7 @@ namespace AStarNet
         /// Find all the paths avalaible between map start point and destination point.
         /// </summary>
         /// <returns>A <see cref="Path{T}"/> array containing all the paths avalaible from start to destination.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when no start or destination node are given in the map.</exception>
+        /// <exception cref="ArgumentNullException">No start or destination node are given in the map.</exception>
         public Path<T>[] FindAllPaths()
         {
             Node<T> startNode = null;                               // Start node from which begin the navigation

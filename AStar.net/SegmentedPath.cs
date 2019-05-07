@@ -4,6 +4,7 @@
 // https://opensource.org/licenses/MIT
 
 using System;
+using System.Collections.Generic;
 
 namespace AStarNet
 {
@@ -13,6 +14,15 @@ namespace AStarNet
     /// <typeparam name="T">Type of the node content.</typeparam>
     public class SegmentedPath<T> : IComparable<SegmentedPath<T>>, IEquatable<SegmentedPath<T>>
     {
+        #region Fields
+
+        /// <summary>
+        /// The segments in this path.
+        /// </summary>
+        protected List<IPath<T>> _segments;
+
+        #endregion
+
         #region Properties
 
         /// <summary>
@@ -27,10 +37,12 @@ namespace AStarNet
         /// <summary>
         /// Gets the segments in this path.
         /// </summary>
-        public IPath<T>[] Segments
+        public IReadOnlyList<IPath<T>> Segments
         {
-            get;
-            private set;
+            get
+            {
+                return this._segments;
+            }
         }
 
         #endregion
@@ -42,24 +54,24 @@ namespace AStarNet
         /// </summary>
         public SegmentedPath()
         {
-            this.Segments = new IPath<T>[0];
+            this._segments = new List<IPath<T>>();
             this.Cost = 0;
         }
 
         /// <summary>
         /// Creates a new instance of a <see cref="SegmentedPath{T}"/>.
         /// </summary>
-        /// <param name="segments"><see cref="IPath{T}"/> array containing path segments.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="segments"/> is <see langword="null"/>.</exception>
-        public SegmentedPath(IPath<T>[] segments)
+        /// <param name="segmentCollection"><see cref="IPath{T}"/> collection containing path segments.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="segmentCollection"/> is <see langword="null"/>.</exception>
+        public SegmentedPath(IEnumerable<IPath<T>> segmentCollection)
         {
-            if (segments == null)
-                throw new ArgumentNullException(nameof(segments));
+            if (segmentCollection == null)
+                throw new ArgumentNullException(nameof(segmentCollection));
 
-            this.Segments = segments;
+            this._segments = new List<IPath<T>>(segmentCollection);
             this.Cost = 0;
 
-            for (int i = 0; i < this.Segments.Length; i++)
+            for (int i = 0; i < this.Segments.Count; i++)
             {
                 this.Cost += this.Segments[i].Cost;
             }
@@ -72,35 +84,51 @@ namespace AStarNet
         /// <summary>
         /// Adds a segment to this path.
         /// </summary>
-        /// <param name="path"><see cref="IPath{T}"/> segment which will be added in this path.</param>
+        /// <param name="segment"><see cref="IPath{T}"/> segment which will be added in this path.</param>
         public void Add(IPath<T> segment)
         {
-            IPath<T>[] newSegments = new IPath<T>[this.Segments.Length + 1];
-
-            this.Segments.CopyTo(newSegments, 0);
-            newSegments[this.Segments.Length] = segment;
-
-            this.Segments = newSegments;
+            this._segments.Add(segment);
             this.Cost += segment.Cost;
         }
 
         /// <summary>
-        /// Adds more segments to this path.
+        /// Adds a range of segments to this path.
         /// </summary>
-        /// <param name="path"><see cref="IPath{T}"/> segment array which will be added in this path.</param>
-        public void Add(IPath<T>[] segments)
+        /// <param name="segmentCollection"><see cref="IPath{T}"/> segment collection which will be added in this path.</param>
+        public void AddRange(IEnumerable<IPath<T>> segmentCollection)
         {
-            IPath<T>[] newSegments = new IPath<T>[this.Segments.Length + segments.Length];
+            this._segments.AddRange(segmentCollection);
 
-            this.Segments.CopyTo(newSegments, 0);
-            segments.CopyTo(newSegments, this.Segments.Length);
-
-            this.Segments = newSegments;
-
-            for (int i = 0; i < segments.Length; i++)
+            foreach (IPath<T> path in segmentCollection)
             {
-                this.Cost += segments[i].Cost;
+                this.Cost += path.Cost;
             }
+        }
+
+        /// <summary>
+        /// Removes the segment at the specific index from this path.
+        /// </summary>
+        /// <param name="index">The zero-based index of the segment to remove.</param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0. -or- <paramref name="index"/> is equal to or greater than <see cref="SegmentedPath{T}.Segments"/> count.</exception>
+        public void RemoveAt(int index)
+        {
+            if (index < 0)
+                throw new ArgumentOutOfRangeException(nameof(index));
+
+            if (index >= this.Segments.Count)
+                throw new ArgumentOutOfRangeException(nameof(index));
+
+            this.Cost -= this._segments[index].Cost;
+
+            this._segments.RemoveAt(index);
+        }
+
+        /// <summary>
+        /// Removes all segments from this path.
+        /// </summary>
+        public void Clear()
+        {
+            this._segments.Clear();
         }
 
         #endregion
@@ -144,7 +172,7 @@ namespace AStarNet
 
             if (this.CompareTo(other) == 0)
             {
-                for (int i = 0; i < this.Segments.Length; i++)
+                for (int i = 0; i < this.Segments.Count; i++)
                 {
                     if (!this.Segments[i].Equals(other.Segments[i]))
                         return false;

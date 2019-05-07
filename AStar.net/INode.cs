@@ -54,9 +54,9 @@ namespace AStarNet
         #region Public methods
 
         /// <summary>
-        /// Create a new <see cref="Node{T}"/> with the same ID, cost, heuristic distance and content of this one.
+        /// Create a new <see cref="Node{T}"/> with the same Id, cost, heuristic distance and content of this one.
         /// </summary>
-        /// <returns>A new <see cref="Node{T}"/> with the same ID, cost, heuristic distance and content of this one.</returns>
+        /// <returns>A new <see cref="Node{T}"/> with the same Id, cost, heuristic distance and content of this one.</returns>
         Node<T> CopyWithoutParent();
 
         #endregion

@@ -14,11 +14,34 @@ namespace AStarNet
     {
         #region Fields
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected readonly Guid _id;                    // Identifier for this node
+
+        /// <summary>
+        /// 
+        /// </summary>
         protected readonly Node<T> _parent;             // Node used during the search to record the parent of successor nodes
+
+        /// <summary>
+        /// 
+        /// </summary>
         protected readonly double _cost;                // Cost of this node
+
+        /// <summary>
+        /// 
+        /// </summary>
         protected readonly double _pathCost;            // Cost of the path from the start to this node
+
+        /// <summary>
+        /// 
+        /// </summary>
         protected readonly double _heuristicDistance;   // Heuristic estimate of distance to goal
+
+        /// <summary>
+        /// 
+        /// </summary>
         protected readonly double _pathScore;           // Sum of cumulative cost of predecessors and self and heuristic
 
         #endregion
@@ -140,9 +163,9 @@ namespace AStarNet
         #region Public methods
 
         /// <summary>
-        /// Create a new <see cref="Node{T}"/> with the same ID, cost, heuristic distance and content of this one.
+        /// Create a new <see cref="Node{T}"/> with the same Id, cost, heuristic distance and content of this one.
         /// </summary>
-        /// <returns>A new <see cref="Node{T}"/> with the same ID, cost, heuristic distance and content of this one.</returns>
+        /// <returns>A new <see cref="Node{T}"/> with the same Id, cost, heuristic distance and content of this one.</returns>
         public Node<T> CopyWithoutParent()
         {
             Node<T> cloneNode = null;
@@ -165,7 +188,7 @@ namespace AStarNet
         /// <para>Zero: This node has the path score and the current cost equal to other node.</para>
         /// <para>Greater than zero: This node as the path score greater than other node or the path score equal ant the current cost greater than other node.</para>
         /// </returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="other"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
         public int CompareTo(Node<T> other)
         {
             if (other == null)
@@ -194,7 +217,7 @@ namespace AStarNet
         /// </summary>
         /// <param name="other">Other <see cref="Node{T}"/> istance.</param>
         /// <returns>True if this and the other istance rappresent the same node.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="other"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
         public bool Equals(Node<T> other)
         {
             if (other == null)

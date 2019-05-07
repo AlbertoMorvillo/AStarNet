@@ -26,7 +26,7 @@ namespace AStarNet
         /// Get the childs of a specific <see cref="Node{T}"/> in the map
         /// </summary>
         /// <param name="currentNode">The <see cref="Node{T}"/> from which get the childs</param>
-        /// <returns>A <see cref="Node"/> array with the childs of the specific <see cref="Node{T}"/> in the map</returns>
+        /// <returns>A <see cref="Node{T}"/> array with the childs of the specific <see cref="Node{T}"/> in the map</returns>
         Node<T>[] GetChildNodes(Node<T> currentNode);
     }
 }

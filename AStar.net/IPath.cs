@@ -32,15 +32,5 @@ namespace AStarNet
         object Tag { get; set; }
 
         #endregion
-
-        #region Public methods
-
-        /// <summary>
-        /// Adds a path to this path.
-        /// </summary>
-        /// <param name="path">Another <see cref="Path{T}"/> which will be added in this path.</param>
-        void Add(Path<T> path);
-
-        #endregion
     }
 }
