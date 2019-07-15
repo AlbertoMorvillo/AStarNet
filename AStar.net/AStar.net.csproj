@@ -1,8 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>AStarNet</RootNamespace>
+    <ApplicationIcon>AStar.ico</ApplicationIcon>
+    <Authors>Alberto Morvillo</Authors>
+    <Description>.Net implementation of the A* path finding algorithm.</Description>
+    <RepositoryUrl>https://github.com/AlbertoMorvillo/AStarNet</RepositoryUrl>
+    <Copyright>Alberto Morvillo</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>A*, path finding</PackageTags>
+    <PackageIconUrl>https://raw.githubusercontent.com/AlbertoMorvillo/AStarNet/master/AStar.net/AStar.ico</PackageIconUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
