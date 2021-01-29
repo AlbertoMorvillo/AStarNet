@@ -10,10 +10,11 @@
     <Copyright>Alberto Morvillo</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>A*, path finding</PackageTags>
-    <PackageIconUrl>https://raw.githubusercontent.com/AlbertoMorvillo/AStarNet/master/AStar.net/AStar.ico</PackageIconUrl>
+    <PackageIconUrl></PackageIconUrl>
     <AssemblyVersion>1.1.0.0</AssemblyVersion>
     <FileVersion>1.1.0.0</FileVersion>
     <Version>1.1.0</Version>
+    <PackageIcon>AStar.png</PackageIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -23,5 +24,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DocumentationFile>C:\Users\alber\Documents\Sorgenti\AStar.net\AStar.net\AStar.net.xml</DocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="AStar.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
