@@ -1,5 +1,5 @@
 ﻿
-// Copyright (c) 2019 Alberto Morvillo
+// Copyright (c) 2021 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 

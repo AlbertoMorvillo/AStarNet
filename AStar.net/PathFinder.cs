@@ -1,5 +1,5 @@
 ﻿
-// Copyright (c) 2019 Alberto Morvillo
+// Copyright (c) 2021 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
@@ -237,7 +237,7 @@ namespace AStarNet
         /// <param name="actualNode">Actual visited <see cref="Node{T}"/>.</param>
         /// <param name="nodeCollection">Collection containing the nodes that can be visited or must be ignored.</param>
         /// <returns>The result of the path finding.</returns>
-        private SearchState ComputeFindPath(Node<T> destinationNode, ref Node<T> actualNode, ref OpenClosedNodeCollection<T> nodeCollection)
+        private SearchState ComputeFindPath(Node<T> destinationNode, ref Node<T> actualNode, OpenClosedNodeCollection<T> nodeCollection)
         {
             SearchState searchResult = SearchState.Searching;       // Flag used to let the function cycle
             Node<T>[] childNodes = null;                            // Array of child nodes
@@ -319,7 +319,7 @@ namespace AStarNet
             OpenClosedNodeCollection<T> nodeCollection = null;      // Collection containing the nodes that can be visited or must be ignored
             List<Node<T>> pathNodeList = null;                      // List of node that defines the path
             double resultPathCost = 0;                              // Cost of the result path
-            
+
 
             // Get the start node from the node map
             startNode = this.NodeMap.GetStartNode();
@@ -344,7 +344,7 @@ namespace AStarNet
             // Begin the search
             do
             {
-                searchResult = this.ComputeFindPath(destinationNode, ref actualNode, ref nodeCollection);
+                searchResult = this.ComputeFindPath(destinationNode, ref actualNode, nodeCollection);
             }
             while (searchResult == SearchState.Searching);
 
@@ -385,7 +385,7 @@ namespace AStarNet
             OpenClosedNodeCollection<T> nodeCollection = null;      // Collection containing the nodes that can be visited or must be ignored
             List<Node<T>> pathNodeList = null;                      // List of node that defines the path
             double foundPathCost = 0;                               // Cost of the found path
-            
+
 
             // Get the start node from the node map
             startNode = this.NodeMap.GetStartNode();
@@ -410,8 +410,9 @@ namespace AStarNet
             // Begin the search
             do
             {
-                searchResult = this.ComputeFindPath(destinationNode, ref actualNode, ref nodeCollection);
+                searchResult = this.ComputeFindPath(destinationNode, ref actualNode, nodeCollection);
 
+                // Create the path if destination as been reached
                 if (searchResult == SearchState.Found)
                 {
                     // Destination reached, saving the search
@@ -424,11 +425,15 @@ namespace AStarNet
                         actualNode = actualNode.Parent;
                     }
 
-                    // Populate and found path
+                    // Populate the found path
                     foundPath = new Path<T>(pathNodeList, foundPathCost);
+
+                    // Add the found path the path list
+                    resultPathList.Add(foundPath);
 
                     // Reset the search
                     actualNode = startNode;
+                    searchResult = SearchState.Searching;
                 }
             }
             while (searchResult == SearchState.Searching);
@@ -469,7 +474,7 @@ namespace AStarNet
         public Guid FindAllPathsAsynch()
         {
             Guid operationID = Guid.Empty;
-            Thread findThread = new Thread(new ParameterizedThreadStart(this.DoFindBestPathAsynch));
+            Thread findThread = new Thread(new ParameterizedThreadStart(this.DoFindAllPathsAsynch));
             FindPathAsynchParams<T> findParams = new FindPathAsynchParams<T>();
             operationID = Guid.NewGuid();
 

@@ -1,5 +1,5 @@
 ﻿
-// Copyright (c) 2019 Alberto Morvillo
+// Copyright (c) 2021 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
@@ -43,7 +43,7 @@ namespace AStarNet
         /// Gets the sum of cumulative cost of predecessors and self and heuristic (F).
         /// </summary>
         double PathScore { get; }
-        
+
         /// <summary>
         /// Gets or sets the <typeparamref name="T"/> content of this node.
         /// </summary>

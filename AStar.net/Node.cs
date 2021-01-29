@@ -1,5 +1,5 @@
 ﻿
-// Copyright (c) 2019 Alberto Morvillo
+// Copyright (c) 2021 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
@@ -15,34 +15,34 @@ namespace AStarNet
         #region Fields
 
         /// <summary>
-        /// 
+        /// Identifier for this node.
         /// </summary>
-        protected readonly Guid _id;                    // Identifier for this node
+        protected readonly Guid _id;
 
         /// <summary>
-        /// 
+        /// Node used during the search to record the parent of successor nodes.
         /// </summary>
-        protected readonly Node<T> _parent;             // Node used during the search to record the parent of successor nodes
+        protected readonly Node<T> _parent;
 
         /// <summary>
-        /// 
+        /// Cost of this node.
         /// </summary>
-        protected readonly double _cost;                // Cost of this node
+        protected readonly double _cost;
 
         /// <summary>
-        /// 
+        /// Cost of the path from the start to this node.
         /// </summary>
-        protected readonly double _pathCost;            // Cost of the path from the start to this node
+        protected readonly double _pathCost;
 
         /// <summary>
-        /// 
+        /// Heuristic estimate of distance to goal.
         /// </summary>
-        protected readonly double _heuristicDistance;   // Heuristic estimate of distance to goal
+        protected readonly double _heuristicDistance;
 
         /// <summary>
-        /// 
+        /// Sum of cumulative cost of predecessors and self and heuristic.
         /// </summary>
-        protected readonly double _pathScore;           // Sum of cumulative cost of predecessors and self and heuristic
+        protected readonly double _pathScore;
 
         #endregion
 
@@ -133,7 +133,7 @@ namespace AStarNet
         /// <param name="nodeGuid"><see cref="Guid"/> of this node.</param>
         /// <param name="content">The <typeparamref name="T"/> content of this node.</param>
         public Node(Guid nodeGuid, T content)
-            : this(nodeGuid, content,  null, 0, 0)
+            : this(nodeGuid, content, null, 0, 0)
         {
         }
 
