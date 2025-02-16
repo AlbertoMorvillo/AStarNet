@@ -1,101 +1,197 @@
-﻿
-// Copyright (c) 2021 Alberto Morvillo
+﻿// Copyright (c) 2025 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AStarNet
 {
     /// <summary>
     /// Contains the node sequence which defines the path, sorted from start to destination node.
     /// </summary>
-    /// <typeparam name="T">Type of the node content.</typeparam>
-    public class Path<T> : IPath<T>
+    /// <typeparam name="TContent">The type of the node content.</typeparam>
+    public class Path<TContent> : IComparable<Path<TContent>>, IEquatable<Path<TContent>>
     {
         #region Properties
 
         /// <summary>
-        /// Gets the cost of this path.
+        /// Gets the identifier for this path.
         /// </summary>
-        public double Cost
-        {
-            get;
-            private set;
-        }
+        public Guid Id { get; }
 
         /// <summary>
         /// Gets the nodes in this path.
         /// </summary>
-        public T[] Nodes
-        {
-            get;
-            private set;
-        }
+        public IReadOnlyList<PathNode<TContent>> Nodes { get; }
+
+        /// <summary>
+        /// Gets the cost of this path.
+        /// </summary>
+        public double Cost { get; }
 
         /// <summary>
         /// Gets or sets the generic tag of this path.
         /// </summary>
-        public object Tag
-        {
-            get;
-            set;
-        }
+        public object Tag { get; set; }
+
+        /// <summary>
+        /// Returns an empty path.
+        /// </summary>
+        public static Path<TContent> Empty { get; } = new Path<TContent>(Guid.Empty);
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Creates a new instance of a <see cref="Path{T}"/>.
+        /// Initializes a new instance of the <see cref="Path{T}"/> class.
         /// </summary>
-        public Path()
+        /// <param name="id">The unique identifier of the path, represented by a <see cref="Guid"/>.</param>
+        public Path(Guid id)
         {
-            this.Nodes = new T[0];
+            this.Id = id;
+            this.Nodes = [];
             this.Cost = 0;
         }
 
         /// <summary>
-        /// Creates a new instance of a <see cref="Path{T}"/>.
+        /// Initializes a new instance of the <see cref="Path{T}"/> class.
         /// </summary>
-        /// <param name="nodes"><typeparamref name="T"/> array containing the sorted node contents of this path, from start to destination.</param>
-        /// <param name="cost">The cost of this path.</param>
+        /// <param name="id">The unique identifier of the path, represented by a <see cref="Guid"/>.</param>
+        /// <param name="nodes">An ordered collection of <see cref="INode{T}"/> representing the nodes in this path, from start to destination.</param>
         /// <exception cref="ArgumentNullException"><paramref name="nodes"/> is <see langword="null"/>.</exception>
-        public Path(T[] nodes, double cost)
+        public Path(Guid id, IEnumerable<INode<TContent>> nodes)
         {
-            if (nodes == null)
-                throw new ArgumentNullException(nameof(nodes));
+            ArgumentNullException.ThrowIfNull(nodes);
 
-            this.Nodes = nodes;
-            this.Cost = cost;
-        }
+            List<PathNode<TContent>> pathNodes = [];
+            int i = 0;
+            double costFromStart = 0.0;
 
-        /// <summary>
-        /// Creates a new instance of a <see cref="Path{T}"/>.
-        /// </summary>
-        /// <param name="nodeCollection"><see cref="Node{T}"/> collection containing the sorted nodes of this path, from start to destination.</param>
-        /// <param name="cost">The cost of this path.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="nodeCollection"/> is <see langword="null"/>.</exception>
-        public Path(IEnumerable<Node<T>> nodeCollection, double cost)
-        {
-            if (nodeCollection == null)
-                throw new ArgumentNullException(nameof(nodeCollection));
+            this.Id = id;
 
-            List<T> contents = new List<T>();
-
-            foreach (Node<T> node in nodeCollection)
+            foreach(INode<TContent> node in nodes)
             {
-                contents.Add(node.Content);
+                costFromStart += node.Cost;
+                PathNode<TContent> pathNode = new(node.Id, node.Content, this, i, node.Cost, costFromStart);
+                pathNodes.Add(pathNode);
+
+                i++;
             }
 
-            this.Nodes = contents.ToArray();
-            this.Cost = cost;
+            this.Nodes = [.. pathNodes];
+            this.Cost = this.Nodes.Count > 0 ? this.Nodes[^1].CostFromStart : 0;
         }
 
         #endregion
 
-        #region IComparable<Node> Members
+        #region Public methods
+
+        /// <summary>
+        /// Creates a new <see cref="Path{T}"/> representing the concatenation of this path and the specified path.
+        /// </summary>
+        /// <param name="other">The path to append to this path.</param>
+        /// <returns>A new <see cref="Path{T}"/> representing the combined path.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
+        public Path<TContent> Concat(Path<TContent> other)
+        {
+            ArgumentNullException.ThrowIfNull(other);
+
+            IEnumerable<PathNode<TContent>> combineNodes = this.Nodes.Concat(other.Nodes);
+
+            Path<TContent> newPath = new(Guid.NewGuid(), combineNodes);
+            return newPath;
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="Path{T}"/> representing the concatenation of two specified paths.
+        /// </summary>
+        /// <param name="path1">The first path.</param>
+        /// <param name="path2">The second path to append to the first path.</param>
+        /// <returns>A new <see cref="Path{T}"/> representing the combined path.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="path1"/> or <paramref name="path2"/> is <see langword="null"/>.</exception>
+        public static Path<TContent> Concat(Path<TContent> path1, Path<TContent> path2)
+        {
+            return Path<TContent>.Concat((IEnumerable<Path<TContent>>)[path1, path2]);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="Path{T}"/> representing the concatenation of multiple specified paths.
+        /// </summary>
+        /// <param name="paths">An array containing the paths to concatenate.</param>
+        /// <returns>A new <see cref="Path{T}"/> representing the combined path.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/>.</exception>
+        public static Path<TContent> Concat(params Path<TContent>[] paths)
+        {
+            return Path<TContent>.Concat((IEnumerable<Path<TContent>>)paths);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="Path{T}"/> representing the concatenation of a sequence of paths.
+        /// </summary>
+        /// <param name="paths">The sequence of paths to concatenate.</param>
+        /// <returns>A new <see cref="Path{T}"/> representing the combined path.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/>.</exception>
+        public static Path<TContent> Concat(IEnumerable<Path<TContent>> paths)
+        {
+            ArgumentNullException.ThrowIfNull(paths);
+
+            IEnumerable<PathNode<TContent>> combinedNodes = paths.SelectMany(p => p.Nodes);
+
+            Path<TContent> newPath = new(Guid.NewGuid(), combinedNodes);
+            return newPath;
+        }
+
+        #endregion
+
+        #region Equality and comparison
+
+        /// <summary>
+        /// Returns a value indicating whether this istance and a specific <see cref="Path{T}"/> rappresent the same path.
+        /// </summary>
+        /// <param name="other">Other <see cref="Path{T}"/> istance.</param>
+        /// <returns>True if this and the other istance rappresent the same path.</returns>
+        public bool Equals(Path<TContent> other)
+        {
+            if (other is null)
+                return false;
+
+            if (this.CompareTo(other) != 0)
+                return false;
+
+            return this.Nodes.SequenceEqual(other.Nodes);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(this, obj))
+                return true;
+
+            if (obj is null)
+                return false;
+
+            if (obj is not Path<TContent> other)
+                return false;
+
+            return this.Equals(other);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            HashCode hash = new();
+            hash.Add(this.Cost);
+
+            foreach (PathNode<TContent> node in this.Nodes)
+            {
+                hash.Add(node.Id);
+            }
+
+            return hash.ToHashCode();
+        }
 
         /// <summary>
         /// Compares first the cost then the length of this path with another one.
@@ -107,58 +203,61 @@ namespace AStarNet
         /// <para>Greater than zero: This path has the cost greater than other node or the cost equal and the length greater than the other path.</para>
         /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
-        public int CompareTo(IPath<T> other)
+        public int CompareTo(Path<TContent> other)
         {
-            if (other == null)
-                throw new ArgumentNullException(nameof(other));
+            ArgumentNullException.ThrowIfNull(other);
 
-            int scoreCompare = this.Cost.CompareTo(other.Cost);
+            int lengthCompare = this.Nodes.Count.CompareTo(other.Nodes.Count);
 
-            if (scoreCompare == 0)
+            if (lengthCompare != 0)
             {
-                // Cost equals: return the path cost comparison
-                return this.Nodes.Length.CompareTo(other.Nodes.Length);
+                // Length not equals: return the path length comparison
+                return lengthCompare;
             }
-            else
-            {
-                // Cost not equals: return the path scores comparison
-                return scoreCompare;
-            }
+
+            // Length equals: return the path cost comparison
+            return this.Cost.CompareTo(other.Cost);
         }
 
-        #endregion
-
-        #region IEquatable<Node> Members
-
-        /// <summary>
-        /// Returns a value indicating whether this istance and a specific <see cref="Path{T}"/> rappresent the same path.
-        /// </summary>
-        /// <param name="other">Other <see cref="Path{T}"/> istance.</param>
-        /// <returns>True if this and the other istance rappresent the same path.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
-        public bool Equals(IPath<T> other)
+        /// <inheritdoc/>
+        public static bool operator ==(Path<TContent> left, Path<TContent> right)
         {
-            if (other == null)
-                throw new ArgumentNullException(nameof(other));
-
-            if (this.CompareTo(other) == 0)
+            if (left is null)
             {
-                for (int i = 0; i < this.Nodes.Length; i++)
-                {
-                    if (this.Nodes[i] is IEquatable<T> eNode && other.Nodes[i] is IEquatable<T> eOther)
-                    {
-                        if (!eNode.Equals(eOther))
-                            return false;
-                    }
-                    else
-                    {
-                        if (!this.Nodes[i].Equals(other.Nodes[i]))
-                            return false;
-                    }
-                }
+                return right is null;
             }
 
-            return true;
+            return left.Equals(right);
+        }
+
+        /// <inheritdoc/>
+        public static bool operator !=(Path<TContent> left, Path<TContent> right)
+        {
+            return !(left == right);
+        }
+
+        /// <inheritdoc/>
+        public static bool operator <(Path<TContent> left, Path<TContent> right)
+        {
+            return left is null ? right is not null : left.CompareTo(right) < 0;
+        }
+
+        /// <inheritdoc/>
+        public static bool operator <=(Path<TContent> left, Path<TContent> right)
+        {
+            return left is null || left.CompareTo(right) <= 0;
+        }
+
+        /// <inheritdoc/>
+        public static bool operator >(Path<TContent> left, Path<TContent> right)
+        {
+            return left is not null && left.CompareTo(right) > 0;
+        }
+
+        /// <inheritdoc/>
+        public static bool operator >=(Path<TContent> left, Path<TContent> right)
+        {
+            return left is null ? right is null : left.CompareTo(right) >= 0;
         }
 
         #endregion

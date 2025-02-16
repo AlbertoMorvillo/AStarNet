@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>AStarNet</RootNamespace>
     <ApplicationIcon>AStar.ico</ApplicationIcon>
     <Authors>Alberto Morvillo</Authors>
@@ -13,19 +13,42 @@
     <PackageIconUrl></PackageIconUrl>
     <AssemblyVersion>1.1.0.0</AssemblyVersion>
     <FileVersion>1.1.0.0</FileVersion>
-    <Version>1.1.0</Version>
+    <Version>2.0.0</Version>
     <PackageIcon>AStar.png</PackageIcon>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Version 2.0.0 – IMPORTANT NOTICE
+This version introduces significant breaking changes that may require updates to your existing code.
+
+- Migrated from .NET Standard 2.0 to .NET 8.0
+- Replaced internal thread management with Task-based parallelism and Cancellation Tokens
+- Introduced support for external node identifiers via a second generic type parameter
+- Improved path and node data structure for clarity and robustness
+- Path node collections are now immutable
+- Added new convenience methods for working with paths and nodes
+- Performance optimizations
+- Removed obsolete types and members
+
+Review your code for compatibility before upgrading.</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DocumentationFile>C:\Users\alber\Documents\Sorgenti\AStar.net\AStar.net\AStar.net.xml</DocumentationFile>
+    <NoWarn />
+    <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DocumentationFile>C:\Users\alber\Documents\Sorgenti\AStar.net\AStar.net\AStar.net.xml</DocumentationFile>
+    <NoWarn />
+    <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Include="AStar.png">
       <Pack>True</Pack>
       <PackagePath></PackagePath>

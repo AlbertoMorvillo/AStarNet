@@ -1,5 +1,4 @@
-﻿
-// Copyright (c) 2021 Alberto Morvillo
+﻿// Copyright (c) 2025 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
@@ -8,21 +7,17 @@ using System;
 namespace AStarNet
 {
     /// <summary>
-    /// Contains data to manage the nodes for the A* algorithm.
+    /// Defines a generic node used within a navigation or pathfinding process.
     /// </summary>
-    public interface INode<T>
+    /// <typeparam name="TContent">The type of the node content.</typeparam>
+    public interface INode<TContent>
     {
         #region Properties
 
         /// <summary>
-        /// Gets the identifier for this node.
+        /// Gets the unique identifier of the node.
         /// </summary>
-        Guid ID { get; }
-
-        /// <summary>
-        /// Gets the <see cref="Node{T}"/> used during the search to record the parent of successor nodes.
-        /// </summary>
-        Node<T> Parent { get; }
+        Guid Id { get; }
 
         /// <summary>
         /// Gets the cost of this node.
@@ -30,34 +25,9 @@ namespace AStarNet
         double Cost { get; }
 
         /// <summary>
-        /// Gets the cost of the path from the start to this node (G).
+        /// Gets or sets the <typeparamref name="TContent"/> content of this node.
         /// </summary>
-        double PathCost { get; }
-
-        /// <summary>
-        /// Gets the heuristic estimate of distance to goal (H).
-        /// </summary>
-        double HeuristicDistance { get; }
-
-        /// <summary>
-        /// Gets the sum of cumulative cost of predecessors and self and heuristic (F).
-        /// </summary>
-        double PathScore { get; }
-
-        /// <summary>
-        /// Gets or sets the <typeparamref name="T"/> content of this node.
-        /// </summary>
-        T Content { get; }
-
-        #endregion
-
-        #region Public methods
-
-        /// <summary>
-        /// Create a new <see cref="Node{T}"/> with the same Id, cost, heuristic distance and content of this one.
-        /// </summary>
-        /// <returns>A new <see cref="Node{T}"/> with the same Id, cost, heuristic distance and content of this one.</returns>
-        Node<T> CopyWithoutParent();
+        TContent Content { get; set; }
 
         #endregion
     }

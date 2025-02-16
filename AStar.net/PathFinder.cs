@@ -1,536 +1,379 @@
-﻿
-// Copyright (c) 2021 Alberto Morvillo
+﻿// Copyright (c) 2025 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
+using AStarNet.Collections;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AStarNet
 {
     /// <summary>
-    /// Delegate for path found event on async finding.
-    /// </summary>
-    /// <typeparam name="T">Type of the node content.</typeparam>
-    /// <param name="paths">Result path.</param>
-    /// <param name="operationID">Identifier of the operation which is searching for a path.</param>
-    public delegate void PathsFoundEventHandler<T>(Path<T>[] paths, Guid operationID);
-
-    /// <summary>
     /// Implements function to find a path with the A* algorithm.
     /// </summary>
-    /// <typeparam name="T">Type of the node content.</typeparam>
-    public class PathFinder<T>
+    /// <typeparam name="TExternalId">The type of the external identifier representing a node in the specific domain (e.g., coordinates, room names, graph keys).</typeparam>
+    /// <typeparam name="TContent">The type of the node content.</typeparam>
+    public class PathFinder<TExternalId, TContent>
     {
-        #region Private data
-
-        /// <summary>
-        /// Search state enumeration used to manage the search function.
-        /// </summary>
-        private enum SearchState
-        {
-            Searching = 0,
-            Found = 1,
-            NotFound = 2
-        }
-
-        /// <summary>
-        /// Structure used to store the find thread parameters.
-        /// </summary>
-        /// <typeparam name="TContent">Type of the node content.</typeparam>
-        private struct FindPathAsynchParams<TContent>
-        {
-            public Guid OperationID;
-            public PathsFoundEventHandler<TContent> PathsFoundEventDelegate;
-        }
-
-        /// <summary>
-        /// Contains the lists of nodes that could be visited or must be ignored.
-        /// </summary>
-        /// <typeparam name="TContent">Type of the node content.</typeparam>
-        private class OpenClosedNodeCollection<TContent>
-        {
-            #region Fields
-
-            private readonly Dictionary<Guid, Node<TContent>> openNodeDictionary;     // List of nodes that could be visited
-            private readonly Dictionary<Guid, Node<TContent>> closedNodeDictionary;   // List of nodes that must not be considered
-
-            #endregion
-
-            #region Costrunctor
-
-            /// <summary>
-            /// Creates a new instance of the <see cref="OpenClosedNodeCollection{T}"/>.
-            /// </summary>
-            public OpenClosedNodeCollection()
-            {
-                this.openNodeDictionary = new Dictionary<Guid, Node<TContent>>();
-                this.closedNodeDictionary = new Dictionary<Guid, Node<TContent>>();
-            }
-
-            #endregion
-
-            #region Public methods
-
-            /// <summary>
-            /// Adds a node to the open list (nodes that could be visited).
-            /// </summary>
-            /// <param name="node">Node to add to the open list.</param>
-            public void AddOpen(Node<TContent> node)
-            {
-                // Skip closed nodes
-                if (!this.closedNodeDictionary.ContainsKey(node.ID))
-                {
-                    // Verifyng in the current path its better than previous
-                    if (this.openNodeDictionary.TryGetValue(node.ID, out Node<TContent> openNode))
-                    {
-                        if (openNode.PathCost >= node.PathCost)
-                        {
-                            // Current it's better or equal, substitute the node
-                            this.openNodeDictionary[node.ID] = node;
-                        }
-                    }
-                    else
-                    {
-                        // No preovious path, adding the node
-                        this.openNodeDictionary.Add(node.ID, node);
-                    }
-                }
-            }
-
-            /// <summary>
-            /// Adds a node to the closed list (nodes that must not be considered).
-            /// </summary>
-            /// <param name="node">Node to add to the close list.</param>
-            public void AddClosed(Node<TContent> node)
-            {
-                // Add the node to the close dictionary and remove it, if exist,
-                // from the open dictionary
-                if (!this.closedNodeDictionary.ContainsKey(node.ID))
-                {
-                    this.closedNodeDictionary.Add(node.ID, node);
-                    this.openNodeDictionary.Remove(node.ID);
-                }
-            }
-
-            /// <summary>
-            /// Gets the nearest node to the destination.
-            /// </summary>
-            public Node<TContent> GetNearestNode()
-            {
-                Node<TContent>[] nodeArray = new Node<TContent>[this.openNodeDictionary.Count];
-                Node<TContent> nearestNodeInArray = null;
-
-                // Continue only if there are nodes in the dictionary
-                if (nodeArray.Length > 0)
-                {
-                    this.openNodeDictionary.Values.CopyTo(nodeArray, 0);
-
-                    // Start the search from the first node
-                    nearestNodeInArray = nodeArray[0];
-
-                    for (int i = 0; i < nodeArray.Length; i++)
-                    {
-                        // If there is a node lesser than the current nearest node, this must be the new nearest
-                        if (nearestNodeInArray.CompareTo(nodeArray[i]) > 0)
-                        {
-                            nearestNodeInArray = nodeArray[i];
-                        }
-                    }
-                }
-
-                return nearestNodeInArray;
-            }
-
-            #endregion
-        }
-
-        /// <summary>
-        /// Dictionary used to manage the open threads for multi-threading.
-        /// </summary>
-        private Dictionary<Guid, Thread> _threadDictionary;
-
-        #endregion
-
-        #region Events
-
-        /// <summary>
-        /// Occurs when the asynch path finding function return.
-        /// </summary>
-        public event PathsFoundEventHandler<T> PathsFound;
-
-        #endregion
-
-        #region Fields
-
-        /// <summary>
-        /// Node map where to find the path.
-        /// </summary>
-        protected readonly INodeMap<T> _nodeMap;
-
-        #endregion
-
         #region Properties
 
         /// <summary>
-        /// Gets the <see cref="INodeMap{T}"/> where to find the path.
+        /// Gets the <see cref="INodeMap{TExternalId, TContent}"/> where to find the path.
         /// </summary>
-        public INodeMap<T> NodeMap
-        {
-            get
-            {
-                return this._nodeMap;
-            }
-        }
+        public INodeMap<TExternalId, TContent> NodeMap { get; }
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Creates a new istance of <see cref="PathFinder{T}"/>.
+        /// Initializes a new instance of the <see cref="PathFinder{TExternalId, TContent}"/> class.
         /// </summary>
-        /// <param name="nodeMap">Node map where to find a path.</param>
-        public PathFinder(INodeMap<T> nodeMap)
+        /// <param name="nodeMap">The node map where to find a path.</param>
+        public PathFinder(INodeMap<TExternalId, TContent> nodeMap)
         {
-            this._threadDictionary = new Dictionary<Guid, Thread>();
-            this._nodeMap = nodeMap;
+            ArgumentNullException.ThrowIfNull(nodeMap);
+
+            this.NodeMap = nodeMap;
         }
 
         #endregion
 
-        #region Private methods
+        #region Protected methods
 
         /// <summary>
-        /// Function working as a new thread used to launch dhe FindBestPath method asynchronously.
+        /// Finds the path.
         /// </summary>
-        /// <param name="param"><see cref="FindPathAsynchParams{T}"/> casted to <see cref="object"/>.</param>
-        private void DoFindBestPathAsynch(object param)
-        {
-            FindPathAsynchParams<T> findParams = (FindPathAsynchParams<T>)param;
-            Path<T> path = this.FindBestPath();
-
-            findParams.PathsFoundEventDelegate?.Invoke(new Path<T>[] { path }, findParams.OperationID);
-
-            this._threadDictionary.Remove(findParams.OperationID);
-        }
-
-        /// <summary>
-        /// Function working as a new thread used to launch dhe FindAllPaths method asynchronously.
-        /// </summary>
-        /// <param name="param"><see cref="FindPathAsynchParams{T}"/> casted to <see cref="object"/>.</param>
-        private void DoFindAllPathsAsynch(object param)
-        {
-            FindPathAsynchParams<T> findParams = (FindPathAsynchParams<T>)param;
-            Path<T>[] paths = this.FindAllPaths();
-
-            findParams.PathsFoundEventDelegate?.Invoke(paths, findParams.OperationID);
-
-            this._threadDictionary.Remove(findParams.OperationID);
-        }
-
-        /// <summary>
-        /// Compute a pass to find the path. It must be cycled untill the result is <see cref="SearchState.Found"/>.
-        /// </summary>
-        /// <param name="destinationNode">Destination <see cref="Node{T}"/>.</param>
-        /// <param name="actualNode">Actual visited <see cref="Node{T}"/>.</param>
+        /// <param name="destinationNode">Destination <see cref="MapNode{T}"/>.</param>
+        /// <param name="actualNode">Actual visited <see cref="MapNode{T}"/>.</param>
         /// <param name="nodeCollection">Collection containing the nodes that can be visited or must be ignored.</param>
-        /// <returns>The result of the path finding.</returns>
-        private SearchState ComputeFindPath(Node<T> destinationNode, ref Node<T> actualNode, OpenClosedNodeCollection<T> nodeCollection)
+        /// <param name="cancellationToken">A token that can be used to request the cancellation of the operation.</param>
+        /// <returns>A <see cref="Path{T}"/> containing all the nodes defines the path, from start to destination.</returns>
+        protected Path<TContent> FindPath(MapNode<TContent> destinationNode, ref MapNode<TContent> actualNode, OpenClosedNodeCollection<TContent> nodeCollection, CancellationToken cancellationToken)
         {
-            SearchState searchResult = SearchState.Searching;       // Flag used to let the function cycle
-            Node<T>[] childNodes = null;                            // Array of child nodes
-            Node<T> nearestNode = null;                             // Node nearest to the actual node
+            Path<TContent> resultPath;
+            bool pathFound = false;
+            bool keepSarching = true;
 
-            // Destination reached, stopping the search
-            if (actualNode.Equals(destinationNode))
+            // Begin the search
+            do
             {
-                searchResult = SearchState.Found;
-                return searchResult;
-            }
-
-            // Get the child nodes 
-            childNodes = this.NodeMap.GetChildNodes(actualNode);
-
-            // Adding actual node to the closed list
-            nodeCollection.AddClosed(actualNode);
-
-            // Analizing child nodes
-            if (childNodes.Length > 0)
-            {
-                for (int i = 0; i < childNodes.Length; i++)
+                // If operation canceled, stop the search
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    // Add child node the the open list
-                    nodeCollection.AddOpen(childNodes[i]);
+                    return Path<TContent>.Empty;
                 }
 
-                // Getting the nearest node
-                nearestNode = nodeCollection.GetNearestNode();
-
-                if (nearestNode != null)
+                // If destination reached, stop the search
+                if (actualNode.Equals(destinationNode))
                 {
-                    actualNode = nearestNode;
+                    pathFound = true;
+                    keepSarching = false;
                 }
                 else
                 {
-                    // No open nodes, going backward
-                    actualNode = actualNode.Parent;
+                    // Get the child nodes 
+                    MapNode<TContent>[] childNodes = this.NodeMap.GetChildNodes(actualNode);
 
-                    // No path avalaible, stopping the search
-                    if (actualNode == null)
+                    // Adding actual node to the closed list
+                    nodeCollection.AddClosed(actualNode);
+
+                    // Analizing child nodes
+                    if (childNodes.Length > 0)
                     {
-                        searchResult = SearchState.NotFound;
+                        foreach(MapNode<TContent> childNode in childNodes)
+                        {
+                            // Add child node the the open list
+                            nodeCollection.AddOpen(childNode);
+                        }
+
+                        // Getting the nearest node
+                        MapNode<TContent> nearestNode = nodeCollection.GetNearestNode();
+
+                        if (nearestNode is not null)
+                        {
+                            actualNode = nearestNode;
+                        }
+                        else
+                        {
+                            // No open nodes (dead end), going backward
+                            actualNode = actualNode.Parent;
+
+                            // No parent avalaible (all possible paths tried), stopping the search
+                            if (actualNode is null)
+                            {
+                                keepSarching = false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // No child nodes (dead end), going backward
+                        actualNode = actualNode.Parent;
+
+                        // No parent avalaible (all possible paths tried), stopping the search
+                        if (actualNode is null)
+                        {
+                            keepSarching = false;
+                        }
                     }
                 }
             }
+            while (keepSarching);
+
+            if (pathFound)
+            {
+                // Destination reached, saving the search
+                List<MapNode<TContent>> mapNodeList = [];
+
+                // Pupulate the list. Starting node must be the first in the list
+                while (actualNode is not null)
+                {
+                    mapNodeList.Add(actualNode);
+                    actualNode = actualNode.Parent;
+                }
+
+                // Adding and reversing is faster than other solutions
+                mapNodeList.Reverse();
+
+                // Populate and return the result path
+                resultPath = new Path<TContent>(Guid.NewGuid(), mapNodeList);
+            }
             else
             {
-                // No child nodes, going backward
-                actualNode = actualNode.Parent;
-
-                // No path avalaible, stopping the search
-                if (actualNode == null)
-                {
-                    searchResult = SearchState.NotFound;
-                }
+                resultPath = Path<TContent>.Empty;
             }
 
-            return searchResult;
+            return resultPath;
+        }
+
+        /// <summary>
+        /// Finds the optimal path between the specified start and destination nodes in the map.
+        /// </summary>
+        /// <param name="startNode">The start <see cref="MapNode{TContent}"/>.</param>
+        /// <param name="destinationNode">The destination <see cref="MapNode{TContent}"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
+        /// <returns>A <see cref="Path{TContent}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TContent}.Empty"/> if no path is found.</returns>
+        protected Path<TContent> FindBestPath(MapNode<TContent> startNode, MapNode<TContent> destinationNode, CancellationToken cancellationToken)
+        {
+            // Initialize che collections
+            OpenClosedNodeCollection<TContent> nodeCollection = new();
+
+            // Begin from the start node
+            MapNode<TContent> actualNode = startNode;
+
+            // Perform the search
+            Path<TContent> resultPath = this.FindPath(destinationNode, ref actualNode, nodeCollection, cancellationToken);
+
+            return resultPath;
+        }
+
+        /// <summary>
+        /// Finds all possible paths between the specified start and destination nodes in the map.
+        /// </summary>
+        /// <param name="startNode">The start <see cref="MapNode{TContent}"/>.</param>
+        /// <param name="destinationNode">The destination <see cref="MapNode{TContent}"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
+        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
+        protected Path<TContent>[] FindAllPaths(MapNode<TContent> startNode, MapNode<TContent> destinationNode, CancellationToken cancellationToken)
+        {
+            // Initialize che collections
+            OpenClosedNodeCollection<TContent> nodeCollection = new();
+            List<Path<TContent>> resultPathList = [];
+
+            // Begin from the start node
+            MapNode<TContent> actualNode = startNode;
+            bool pathFound;
+
+            // Begin the search
+            do
+            {
+                Path<TContent> foundPath = this.FindPath(destinationNode, ref actualNode, nodeCollection, cancellationToken);
+
+                if (foundPath.Nodes.Count > 0)
+                {
+                    // Add the found path the path list
+                    resultPathList.Add(foundPath);
+
+                    // Reset the search
+                    actualNode = startNode;
+                    pathFound = true;
+                }
+                else
+                {
+                    pathFound = false;
+                }
+            }
+            while (pathFound);
+
+            // Sort all the paths and return them as array
+            resultPathList.Sort();
+
+            return [.. resultPathList];
         }
 
         #endregion
 
         #region Public methods
 
+        #region Sync
+
         /// <summary>
-        /// Find the best path between map start point and destination point.
+        /// Finds the optimal path between the specified start and destination nodes in the map, identified by external identifiers.
         /// </summary>
-        /// <returns>A <see cref="Path{T}"/> containing all the nodes defines the path, from start to destination.</returns>
-        /// <exception cref="ArgumentNullException">No start or destination node are given in the map.</exception>
-        public Path<T> FindBestPath()
+        /// <param name="externalStartId">The external identifier of the start node, of type <typeparamref name="TExternalId"/>.</param>
+        /// <param name="externalDestinationId">The external identifier of the destination node, of type <typeparamref name="TExternalId"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
+        /// <returns>A <see cref="Path{TContent}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TContent}.Empty"/> if no path is found.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if the start or destination node is not present in the map.</exception>
+        public Path<TContent> FindBestPath(TExternalId externalStartId, TExternalId externalDestinationId, CancellationToken cancellationToken = default)
         {
-            Node<T> startNode = null;                               // Start node from which begin the navigation
-            Node<T> destinationNode = null;                         // Destination node to be reached
-            Node<T> actualNode = null;                              // Actual visited node
-            Path<T> resultPath = null;                              // Result path
-
-            SearchState searchResult = SearchState.Searching;       // Flag used to let the function cycle
-            OpenClosedNodeCollection<T> nodeCollection = null;      // Collection containing the nodes that can be visited or must be ignored
-            List<Node<T>> pathNodeList = null;                      // List of node that defines the path
-            double resultPathCost = 0;                              // Cost of the result path
-
-
             // Get the start node from the node map
-            startNode = this.NodeMap.GetStartNode();
+            MapNode<TContent> startNode = this.NodeMap.GetNode(externalStartId) ?? throw new NullReferenceException("No start node.");
 
             // Get the destination node from the node map
-            destinationNode = this.NodeMap.GetDestinationNode();
+            MapNode<TContent> destinationNode = this.NodeMap.GetNode(externalDestinationId) ?? throw new NullReferenceException("No destination node.");
 
-            // Throw an exception if there are no starting or destination node
-            if (startNode == null)
-                throw new ArgumentNullException(nameof(startNode));
-
-            if (destinationNode == null)
-                throw new ArgumentNullException(nameof(destinationNode));
-
-            // Initialize che collections
-            pathNodeList = new List<Node<T>>();
-            nodeCollection = new OpenClosedNodeCollection<T>();
-
-            // Begin from the start node
-            actualNode = startNode;
-
-            // Begin the search
-            do
-            {
-                searchResult = this.ComputeFindPath(destinationNode, ref actualNode, nodeCollection);
-            }
-            while (searchResult == SearchState.Searching);
-
-            // Create the path if destination as been reached
-            if (searchResult == SearchState.Found)
-            {
-                // Destination reached, saving the search
-                resultPathCost = actualNode.PathCost;
-
-                // Pupulate the list. Starting node must be the first in the list
-                while (actualNode != null)
-                {
-                    pathNodeList.Insert(0, actualNode);
-                    actualNode = actualNode.Parent;
-                }
-            }
-
-            // Populate and return the result path
-            resultPath = new Path<T>(pathNodeList, resultPathCost);
-
-            return resultPath;
+            return this.FindBestPath(startNode, destinationNode, cancellationToken);
         }
 
         /// <summary>
-        /// Find all the paths avalaible between map start point and destination point.
+        /// Finds the optimal path between the specified start and destination nodes in the map.
         /// </summary>
-        /// <returns>A <see cref="Path{T}"/> array containing all the paths avalaible from start to destination.</returns>
-        /// <exception cref="ArgumentNullException">No start or destination node are given in the map.</exception>
-        public Path<T>[] FindAllPaths()
+        /// <param name="startNodeId">The unique identifier of the start node, represented by a <see cref="Guid"/>.</param>
+        /// <param name="destinationNodeId">The unique identifier of the destination node, represented by a <see cref="Guid"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
+        /// <returns>A <see cref="Path{TContent}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TContent}.Empty"/> if no path is found.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if the start or destination node is not present in the map.</exception>
+        public Path<TContent> FindBestPath(Guid startNodeId, Guid destinationNodeId, CancellationToken cancellationToken = default)
         {
-            Node<T> startNode = null;                               // Start node from which begin the navigation
-            Node<T> destinationNode = null;                         // Destination node to be reached
-            Node<T> actualNode = null;                              // Actual visited node
-            Path<T> foundPath = null;                               // Path found by a search
-            List<Path<T>> resultPathList = new List<Path<T>>();     // List of paths found by all the search cycles
-
-            SearchState searchResult = SearchState.Searching;       // Flag used to let the function cycle
-            OpenClosedNodeCollection<T> nodeCollection = null;      // Collection containing the nodes that can be visited or must be ignored
-            List<Node<T>> pathNodeList = null;                      // List of node that defines the path
-            double foundPathCost = 0;                               // Cost of the found path
-
-
             // Get the start node from the node map
-            startNode = this.NodeMap.GetStartNode();
+            MapNode<TContent> startNode = this.NodeMap.GetNode(startNodeId) ?? throw new NullReferenceException("No start node.");
 
             // Get the destination node from the node map
-            destinationNode = this.NodeMap.GetDestinationNode();
+            MapNode<TContent> destinationNode = this.NodeMap.GetNode(destinationNodeId) ?? throw new NullReferenceException("No destination node.");
 
-            // Throw an exception if there are no starting or destination node
-            if (startNode == null)
-                throw new ArgumentNullException(nameof(startNode));
+            return this.FindBestPath(startNode, destinationNode, cancellationToken);
+        }
 
-            if (destinationNode == null)
-                throw new ArgumentNullException(nameof(destinationNode));
+        /// <summary>
+        /// Finds all possible paths between the specified start and destination nodes in the map, identified by external identifiers.
+        /// </summary>
+        /// <param name="externalStartId">The external identifier of the start node, of type <typeparamref name="TExternalId"/>.</param>
+        /// <param name="externalDestinationId">The external identifier of the destination node, of type <typeparamref name="TExternalId"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
+        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
+        /// <exception cref="NullReferenceException">Thrown if the start or destination node is not present in the map.</exception>
+        public Path<TContent>[] FindAllPaths(TExternalId externalStartId, TExternalId externalDestinationId, CancellationToken cancellationToken = default)
+        {
+            // Get the start node from the node map
+            MapNode<TContent> startNode = this.NodeMap.GetNode(externalStartId) ?? throw new NullReferenceException("No start node.");
 
-            // Initialize che collections
-            pathNodeList = new List<Node<T>>();
-            nodeCollection = new OpenClosedNodeCollection<T>();
+            // Get the destination node from the node map
+            MapNode<TContent> destinationNode = this.NodeMap.GetNode(externalDestinationId) ?? throw new NullReferenceException("No destination node.");
 
-            // Begin from the start node
-            actualNode = startNode;
+            return this.FindAllPaths(startNode, destinationNode, cancellationToken);
+        }
 
-            // Begin the search
-            do
+        /// <summary>
+        /// Finds all possible paths between the specified start and destination nodes in the map.
+        /// </summary>
+        /// <param name="startNodeId">The unique identifier of the start node, represented by a <see cref="Guid"/>.</param>
+        /// <param name="destinationNodeId">The unique identifier of the destination node, represented by a <see cref="Guid"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
+        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
+        /// <exception cref="NullReferenceException">Thrown if the start or destination node is not present in the map.</exception>
+        public Path<TContent>[] FindAllPaths(Guid startNodeId, Guid destinationNodeId, CancellationToken cancellationToken = default)
+        {
+            // Get the start node from the node map
+            MapNode<TContent> startNode = this.NodeMap.GetNode(startNodeId) ?? throw new NullReferenceException("No start node.");
+
+            // Get the destination node from the node map
+            MapNode<TContent> destinationNode = this.NodeMap.GetNode(destinationNodeId) ?? throw new NullReferenceException("No destination node.");
+
+            return this.FindAllPaths(startNode, destinationNode, cancellationToken);
+        }
+
+        #endregion
+
+        #region Async
+
+        /// <summary>
+        /// Asynchronously finds the optimal path between the specified start and destination nodes in the map, identified by external identifiers.
+        /// </summary>
+        /// <param name="externalStartId">The external identifier of the start node, of type <typeparamref name="TExternalId"/>.</param>
+        /// <param name="externalDestinationId">The external identifier of the destination node, of type <typeparamref name="TExternalId"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
+        /// <returns>A <see cref="Path{TContent}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TContent}.Empty"/> if no path is found.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if the start or destination node is not present in the map.</exception>
+        public Task<Path<TContent>> FindBestPathAsync(TExternalId externalStartId, TExternalId externalDestinationId, CancellationToken cancellationToken = default)
+        {
+            Task<Path<TContent>> findTask = Task.Run(() =>
             {
-                searchResult = this.ComputeFindPath(destinationNode, ref actualNode, nodeCollection);
+                Path<TContent> resultPath = this.FindBestPath(externalStartId, externalDestinationId, cancellationToken);
+                return resultPath;
+            });
 
-                // Create the path if destination as been reached
-                if (searchResult == SearchState.Found)
-                {
-                    // Destination reached, saving the search
-                    foundPathCost = actualNode.PathCost;
-
-                    // Pupulate the list. Starting node must be the first in the list
-                    while (actualNode != null)
-                    {
-                        pathNodeList.Insert(0, actualNode);
-                        actualNode = actualNode.Parent;
-                    }
-
-                    // Populate the found path
-                    foundPath = new Path<T>(pathNodeList, foundPathCost);
-
-                    // Add the found path the path list
-                    resultPathList.Add(foundPath);
-
-                    // Reset the search
-                    actualNode = startNode;
-                    searchResult = SearchState.Searching;
-                }
-            }
-            while (searchResult == SearchState.Searching);
-
-            // Sort all the paths and return them as array
-            resultPathList.Sort();
-
-            return resultPathList.ToArray();
-        }
-
-        #region Async methods
-
-        /// <summary>
-        /// Find the best path between map start point and destination point asynchronously.
-        /// </summary>
-        /// <returns>Async operation <see cref="Guid"/>.</returns>
-        public Guid FindBestPathAsynch()
-        {
-            Guid operationID = Guid.Empty;
-            Thread findThread = new Thread(new ParameterizedThreadStart(this.DoFindBestPathAsynch));
-            FindPathAsynchParams<T> findParams = new FindPathAsynchParams<T>();
-            operationID = Guid.NewGuid();
-
-            this._threadDictionary.Add(operationID, findThread);
-
-            findParams.OperationID = operationID;
-            findParams.PathsFoundEventDelegate = this.PathsFound;
-
-            findThread.Start(findParams);
-
-            return operationID;
+            return findTask;
         }
 
         /// <summary>
-        /// Find all the paths avalaible between map start point and destination point asynchronously.
+        /// Asynchronously finds the optimal path between the specified start and destination nodes in the map.
         /// </summary>
-        /// <returns>Async operation <see cref="Guid"/>.</returns>
-        public Guid FindAllPathsAsynch()
+        /// <param name="startNodeId">The unique identifier of the start node, represented by a <see cref="Guid"/>.</param>
+        /// <param name="destinationNodeId">The unique identifier of the destination node, represented by a <see cref="Guid"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
+        /// <returns>A <see cref="Path{TContent}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TContent}.Empty"/> if no path is found.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if the start or destination node is not present in the map.</exception>
+        public Task<Path<TContent>> FindBestPathAsync(Guid startNodeId, Guid destinationNodeId, CancellationToken cancellationToken = default)
         {
-            Guid operationID = Guid.Empty;
-            Thread findThread = new Thread(new ParameterizedThreadStart(this.DoFindAllPathsAsynch));
-            FindPathAsynchParams<T> findParams = new FindPathAsynchParams<T>();
-            operationID = Guid.NewGuid();
-
-            this._threadDictionary.Add(operationID, findThread);
-
-            findParams.OperationID = operationID;
-            findParams.PathsFoundEventDelegate = this.PathsFound;
-
-            findThread.Start(findParams);
-
-            return operationID;
-        }
-
-        /// <summary>
-        /// Gets the asynch operation status.
-        /// </summary>
-        /// <param name="operationID">Asynch operation ID for which get the status.</param>
-        /// <returns></returns>
-        public ThreadState GetAsynchOperationStatus(Guid operationID)
-        {
-            Thread thread = null;
-            ThreadState state = ThreadState.Unstarted;
-
-            if (this._threadDictionary.ContainsKey(operationID))
+            Task<Path<TContent>> findTask = Task.Run(() =>
             {
-                thread = this._threadDictionary[operationID];
-                state = thread.ThreadState;
-            }
+                Path<TContent> resultPath = this.FindBestPath(startNodeId, destinationNodeId, cancellationToken);
+                return resultPath;
+            });
 
-            return state;
+            return findTask;
         }
 
         /// <summary>
-        /// Stop a specific asynch operation.
+        /// Asynchronously finds all possible paths between the specified start and destination nodes in the map, identified by external identifiers.
         /// </summary>
-        /// <param name="operationID">Asynch find istance <see cref="Guid"/>.</param>
-        public void StopAsynchOperation(Guid operationID)
+        /// <param name="externalStartId">The external identifier of the start node, of type <typeparamref name="TExternalId"/>.</param>
+        /// <param name="externalDestinationId">The external identifier of the destination node, of type <typeparamref name="TExternalId"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
+        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
+        /// <exception cref="NullReferenceException">Thrown if the start or destination node is not present in the map.</exception>
+        public Task<Path<TContent>[]> FindAllPathsAsync(TExternalId externalStartId, TExternalId externalDestinationId, CancellationToken cancellationToken = default)
         {
-            if (this._threadDictionary.ContainsKey(operationID))
+            Task<Path<TContent>[]> findTask = Task.Run(() =>
             {
-                this._threadDictionary[operationID].Abort();
-                this._threadDictionary.Remove(operationID);
-            }
+                Path<TContent>[] resultPaths = this.FindAllPaths(externalStartId, externalDestinationId, cancellationToken);
+                return resultPaths;
+            });
+
+            return findTask;
         }
 
         /// <summary>
-        /// Stop all asynch operations.
+        /// Asynchronously finds all possible paths between the specified start and destination nodes in the map.
         /// </summary>
-        public void StopAllAsynchOperations()
+        /// <param name="startNodeId">The unique identifier of the start node, represented by a <see cref="Guid"/>.</param>
+        /// <param name="destinationNodeId">The unique identifier of the destination node, represented by a <see cref="Guid"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
+        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
+        /// <exception cref="NullReferenceException">Thrown if the start or destination node is not present in the map.</exception>
+        public Task<Path<TContent>[]> FindAllPathsAsync(Guid startNodeId, Guid destinationNodeId, CancellationToken cancellationToken = default)
         {
-            foreach (Thread thread in this._threadDictionary.Values)
+            Task<Path<TContent>[]> findTask = Task.Run(() =>
             {
-                thread.Abort();
-            }
+                Path<TContent>[] resultPaths = this.FindAllPaths(startNodeId, destinationNodeId, cancellationToken);
+                return resultPaths;
+            });
 
-            this._threadDictionary.Clear();
+            return findTask;
         }
 
         #endregion
