@@ -35,10 +35,10 @@ namespace AStarNet
         MapNode<TContent> GetNode(TExternalId externalId);
 
         /// <summary>
-        /// Get the childs of a specific <see cref="MapNode{T}"/> in the map.
+        /// Get the childs of a specific <see cref="MapNode{TContent}"/> in the map.
         /// </summary>
-        /// <param name="currentNode">The <see cref="MapNode{T}"/> from which get the childs.</param>
-        /// <returns>A <see cref="MapNode{T}"/> array with the childs of the specific <see cref="MapNode{T}"/> in the map.</returns>
+        /// <param name="currentNode">The <see cref="MapNode{TContent}"/> from which get the childs.</param>
+        /// <returns>A <see cref="MapNode{TContent}"/> array with the childs of the specific <see cref="MapNode{TContent}"/> in the map.</returns>
         MapNode<TContent>[] GetChildNodes(MapNode<TContent> currentNode);
 
         /// <summary>

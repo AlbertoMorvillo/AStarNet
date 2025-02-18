@@ -11,9 +11,22 @@ namespace AStarNet
     /// <summary>
     /// Contains the node sequence which defines the path, sorted from start to destination node.
     /// </summary>
-    /// <typeparam name="TContent">The type of the node content.</typeparam>
+    /// <typeparam name="TContent">The type of content associated with the path nodes.</typeparam>
     public class Path<TContent> : IComparable<Path<TContent>>, IEquatable<Path<TContent>>
     {
+        #region Fields
+
+        /// <summary>
+        /// Stores the precomputed hash code for the current path instance.
+        /// </summary>
+        /// <remarks>
+        /// The hash code is computed once during object construction and remains immutable throughout the lifetime of the instance.
+        /// This improves performance when the hash code is accessed multiple times.
+        /// </remarks>
+        protected readonly int _precomputedHashCode;
+
+        #endregion
+
         #region Properties
 
         /// <summary>
@@ -46,7 +59,7 @@ namespace AStarNet
         #region Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Path{T}"/> class.
+        /// Initializes a new instance of the <see cref="Path{TContent}"/> class.
         /// </summary>
         /// <param name="id">The unique identifier of the path, represented by a <see cref="Guid"/>.</param>
         public Path(Guid id)
@@ -54,13 +67,15 @@ namespace AStarNet
             this.Id = id;
             this.Nodes = [];
             this.Cost = 0;
+
+            this._precomputedHashCode = this.GenerateHashCode();
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Path{T}"/> class.
+        /// Initializes a new instance of the <see cref="Path{TContent}"/> class.
         /// </summary>
         /// <param name="id">The unique identifier of the path, represented by a <see cref="Guid"/>.</param>
-        /// <param name="nodes">An ordered collection of <see cref="INode{T}"/> representing the nodes in this path, from start to destination.</param>
+        /// <param name="nodes">An ordered collection of <see cref="INode{TContent}"/> representing the nodes in this path, from start to destination.</param>
         /// <exception cref="ArgumentNullException"><paramref name="nodes"/> is <see langword="null"/>.</exception>
         public Path(Guid id, IEnumerable<INode<TContent>> nodes)
         {
@@ -83,6 +98,33 @@ namespace AStarNet
 
             this.Nodes = [.. pathNodes];
             this.Cost = this.Nodes.Count > 0 ? this.Nodes[^1].CostFromStart : 0;
+
+            this._precomputedHashCode = this.GenerateHashCode();
+        }
+
+        #endregion
+
+        #region Protected methods
+
+        /// <summary>
+        /// Generates the hash code for the current path instance by combining the total cost and the identifiers of the nodes.
+        /// </summary>
+        /// <returns>The computed hash code as an <see cref="int"/>.</returns>
+        /// <remarks>
+        /// The hash is computed using the total path cost and the node identifiers, preserving their order.
+        /// This method is intended to be used within the constructor and stored, as the path is immutable.
+        /// </remarks>
+        protected int GenerateHashCode()
+        {
+            HashCode hash = new();
+            hash.Add(this.Cost);
+
+            foreach (PathNode<TContent> node in this.Nodes)
+            {
+                hash.Add(node.Id);
+            }
+
+            return hash.ToHashCode();
         }
 
         #endregion
@@ -90,10 +132,10 @@ namespace AStarNet
         #region Public methods
 
         /// <summary>
-        /// Creates a new <see cref="Path{T}"/> representing the concatenation of this path and the specified path.
+        /// Creates a new <see cref="Path{TContent}"/> representing the concatenation of this path and the specified path.
         /// </summary>
         /// <param name="other">The path to append to this path.</param>
-        /// <returns>A new <see cref="Path{T}"/> representing the combined path.</returns>
+        /// <returns>A new <see cref="Path{TContent}"/> representing the combined path.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
         public Path<TContent> Concat(Path<TContent> other)
         {
@@ -106,11 +148,11 @@ namespace AStarNet
         }
 
         /// <summary>
-        /// Creates a new <see cref="Path{T}"/> representing the concatenation of two specified paths.
+        /// Creates a new <see cref="Path{TContent}"/> representing the concatenation of two specified paths.
         /// </summary>
         /// <param name="path1">The first path.</param>
         /// <param name="path2">The second path to append to the first path.</param>
-        /// <returns>A new <see cref="Path{T}"/> representing the combined path.</returns>
+        /// <returns>A new <see cref="Path{TContent}"/> representing the combined path.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="path1"/> or <paramref name="path2"/> is <see langword="null"/>.</exception>
         public static Path<TContent> Concat(Path<TContent> path1, Path<TContent> path2)
         {
@@ -118,10 +160,10 @@ namespace AStarNet
         }
 
         /// <summary>
-        /// Creates a new <see cref="Path{T}"/> representing the concatenation of multiple specified paths.
+        /// Creates a new <see cref="Path{TContent}"/> representing the concatenation of multiple specified paths.
         /// </summary>
         /// <param name="paths">An array containing the paths to concatenate.</param>
-        /// <returns>A new <see cref="Path{T}"/> representing the combined path.</returns>
+        /// <returns>A new <see cref="Path{TContent}"/> representing the combined path.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/>.</exception>
         public static Path<TContent> Concat(params Path<TContent>[] paths)
         {
@@ -129,10 +171,10 @@ namespace AStarNet
         }
 
         /// <summary>
-        /// Creates a new <see cref="Path{T}"/> representing the concatenation of a sequence of paths.
+        /// Creates a new <see cref="Path{TContent}"/> representing the concatenation of a sequence of paths.
         /// </summary>
         /// <param name="paths">The sequence of paths to concatenate.</param>
-        /// <returns>A new <see cref="Path{T}"/> representing the combined path.</returns>
+        /// <returns>A new <see cref="Path{TContent}"/> representing the combined path.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/>.</exception>
         public static Path<TContent> Concat(IEnumerable<Path<TContent>> paths)
         {
@@ -149,9 +191,9 @@ namespace AStarNet
         #region Equality and comparison
 
         /// <summary>
-        /// Returns a value indicating whether this istance and a specific <see cref="Path{T}"/> rappresent the same path.
+        /// Returns a value indicating whether this istance and a specific <see cref="Path{TContent}"/> rappresent the same path.
         /// </summary>
-        /// <param name="other">Other <see cref="Path{T}"/> istance.</param>
+        /// <param name="other">The other <see cref="Path{TContent}"/> compare with the current path.</param>
         /// <returns>True if this and the other istance rappresent the same path.</returns>
         public bool Equals(Path<TContent> other)
         {
@@ -182,41 +224,33 @@ namespace AStarNet
         /// <inheritdoc/>
         public override int GetHashCode()
         {
-            HashCode hash = new();
-            hash.Add(this.Cost);
-
-            foreach (PathNode<TContent> node in this.Nodes)
-            {
-                hash.Add(node.Id);
-            }
-
-            return hash.ToHashCode();
+            return this._precomputedHashCode;
         }
 
         /// <summary>
-        /// Compares first the cost then the length of this path with another one.
+        /// Compares first the cost then the number of nodes of this path with another one.
         /// </summary>
-        /// <param name="other">Other <see cref="Path{T}"/> to compare.</param>
+        /// <param name="other">The other <see cref="Path{TContent}"/> to compare with the current path.</param>
         /// <returns>
-        /// <para>Less than zero: This path has the cost less than other path or the cost equal and the length less than other path.</para>
+        /// <para>Less than zero: This path has the cost less than other path or the cost equal and fewer nodes than other path.</para>
         /// <para>Zero: This path has the cost and the length equal to other node.</para>
-        /// <para>Greater than zero: This path has the cost greater than other node or the cost equal and the length greater than the other path.</para>
+        /// <para>Greater than zero: This path has the cost greater than other node or the cost equal and more nodes than the other path.</para>
         /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
         public int CompareTo(Path<TContent> other)
         {
             ArgumentNullException.ThrowIfNull(other);
 
-            int lengthCompare = this.Nodes.Count.CompareTo(other.Nodes.Count);
+            int costCompare = this.Cost.CompareTo(other.Cost);
 
-            if (lengthCompare != 0)
+            if (costCompare != 0)
             {
-                // Length not equals: return the path length comparison
-                return lengthCompare;
+                // Cost not equals: return the path cost comparison
+                return costCompare;
             }
 
-            // Length equals: return the path cost comparison
-            return this.Cost.CompareTo(other.Cost);
+            // Cost equals: return the path node count comparison
+            return this.Nodes.Count.CompareTo(other.Nodes.Count);
         }
 
         /// <inheritdoc/>

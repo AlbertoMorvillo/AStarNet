@@ -2,7 +2,6 @@
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
-using AStarNet.Collections;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -14,7 +13,7 @@ namespace AStarNet
     /// Implements function to find a path with the A* algorithm.
     /// </summary>
     /// <typeparam name="TExternalId">The type of the external identifier representing a node in the specific domain (e.g., coordinates, room names, graph keys).</typeparam>
-    /// <typeparam name="TContent">The type of the node content.</typeparam>
+    /// <typeparam name="TContent">The type of content associated with the path nodes.</typeparam>
     public class PathFinder<TExternalId, TContent>
     {
         #region Properties
@@ -44,18 +43,20 @@ namespace AStarNet
         #region Protected methods
 
         /// <summary>
-        /// Finds the path.
+        /// Finds the optimal path between the specified start and destination nodes in the map.
         /// </summary>
-        /// <param name="destinationNode">Destination <see cref="MapNode{T}"/>.</param>
-        /// <param name="actualNode">Actual visited <see cref="MapNode{T}"/>.</param>
-        /// <param name="nodeCollection">Collection containing the nodes that can be visited or must be ignored.</param>
-        /// <param name="cancellationToken">A token that can be used to request the cancellation of the operation.</param>
-        /// <returns>A <see cref="Path{T}"/> containing all the nodes defines the path, from start to destination.</returns>
-        protected Path<TContent> FindPath(MapNode<TContent> destinationNode, ref MapNode<TContent> actualNode, OpenClosedNodeCollection<TContent> nodeCollection, CancellationToken cancellationToken)
+        /// <param name="startNode">The start <see cref="MapNode{TContent}"/>.</param>
+        /// <param name="destinationNode">The destination <see cref="MapNode{TContent}"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
+        /// <returns>A <see cref="Path{TContent}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TContent}.Empty"/> if no path is found.</returns>
+        protected Path<TContent> FindBestPath(MapNode<TContent> startNode, MapNode<TContent> destinationNode, CancellationToken cancellationToken)
         {
-            Path<TContent> resultPath;
-            bool pathFound = false;
-            bool keepSarching = true;
+            Path<TContent> resultPath;                                          // The path found if the destination is reached
+            HashSet<Guid> visitedNodes = [];                                    // Visited nodes, they must be avoided when looking for new nodes to reach the destination
+            PriorityQueue<MapNode<TContent>, double> visitableNodes = new();    // Visitable nodes - Using the priority queue will ensure that the node with the lesser cost will be the first
+            MapNode<TContent> actualNode = startNode;                           // The node from looking for new nodes to reach the destination - Begin from the start node
+            bool pathFound = false;                                             // A flag to tell if the result path must be filled
+            bool keepSarching = true;                                           // A flag to tell if the searching loop must continue
 
             // Begin the search
             do
@@ -77,40 +78,28 @@ namespace AStarNet
                     // Get the child nodes 
                     MapNode<TContent>[] childNodes = this.NodeMap.GetChildNodes(actualNode);
 
-                    // Adding actual node to the closed list
-                    nodeCollection.AddClosed(actualNode);
+                    // Adding actual node to the visited nodes
+                    visitedNodes.Add(actualNode.Id);
 
                     // Analizing child nodes
-                    if (childNodes.Length > 0)
+                    if (childNodes is not null && childNodes.Length > 0)
                     {
-                        foreach(MapNode<TContent> childNode in childNodes)
+                        foreach (MapNode<TContent> childNode in childNodes)
                         {
-                            // Add child node the the open list
-                            nodeCollection.AddOpen(childNode);
+                            // Add child node the the visitable nodes
+                            if (!visitedNodes.Contains(childNode.Id))
+                                visitableNodes.Enqueue(childNode, childNode.Cost);
                         }
+                    }
 
-                        // Getting the nearest node
-                        MapNode<TContent> nearestNode = nodeCollection.GetNearestNode();
-
-                        if (nearestNode is not null)
-                        {
-                            actualNode = nearestNode;
-                        }
-                        else
-                        {
-                            // No open nodes (dead end), going backward
-                            actualNode = actualNode.Parent;
-
-                            // No parent avalaible (all possible paths tried), stopping the search
-                            if (actualNode is null)
-                            {
-                                keepSarching = false;
-                            }
-                        }
+                    // Getting the nearest node
+                    if (visitableNodes.TryPeek(out MapNode<TContent> nearestNode, out _))
+                    {
+                        actualNode = nearestNode;
                     }
                     else
                     {
-                        // No child nodes (dead end), going backward
+                        // No open nodes (dead end), going backward
                         actualNode = actualNode.Parent;
 
                         // No parent avalaible (all possible paths tried), stopping the search
@@ -119,23 +108,27 @@ namespace AStarNet
                             keepSarching = false;
                         }
                     }
+
+                    // Clearing the visitable nodes for the next loop
+                    visitableNodes.Clear();
                 }
             }
             while (keepSarching);
 
+            // If a path is found, the nodes must be navigated backward to fill the result path
             if (pathFound)
             {
-                // Destination reached, saving the search
+                // A list will be used to store the nodes
                 List<MapNode<TContent>> mapNodeList = [];
 
-                // Pupulate the list. Starting node must be the first in the list
                 while (actualNode is not null)
                 {
                     mapNodeList.Add(actualNode);
                     actualNode = actualNode.Parent;
                 }
 
-                // Adding and reversing is faster than other solutions
+                // To nodes are stored in reverse order, so they must be reversed
+                // Using a list and reverse it is a fast and clean solution
                 mapNodeList.Reverse();
 
                 // Populate and return the result path
@@ -143,75 +136,11 @@ namespace AStarNet
             }
             else
             {
+                // No path found, so the result path will be an empty one
                 resultPath = Path<TContent>.Empty;
             }
 
             return resultPath;
-        }
-
-        /// <summary>
-        /// Finds the optimal path between the specified start and destination nodes in the map.
-        /// </summary>
-        /// <param name="startNode">The start <see cref="MapNode{TContent}"/>.</param>
-        /// <param name="destinationNode">The destination <see cref="MapNode{TContent}"/>.</param>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
-        /// <returns>A <see cref="Path{TContent}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TContent}.Empty"/> if no path is found.</returns>
-        protected Path<TContent> FindBestPath(MapNode<TContent> startNode, MapNode<TContent> destinationNode, CancellationToken cancellationToken)
-        {
-            // Initialize che collections
-            OpenClosedNodeCollection<TContent> nodeCollection = new();
-
-            // Begin from the start node
-            MapNode<TContent> actualNode = startNode;
-
-            // Perform the search
-            Path<TContent> resultPath = this.FindPath(destinationNode, ref actualNode, nodeCollection, cancellationToken);
-
-            return resultPath;
-        }
-
-        /// <summary>
-        /// Finds all possible paths between the specified start and destination nodes in the map.
-        /// </summary>
-        /// <param name="startNode">The start <see cref="MapNode{TContent}"/>.</param>
-        /// <param name="destinationNode">The destination <see cref="MapNode{TContent}"/>.</param>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
-        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
-        protected Path<TContent>[] FindAllPaths(MapNode<TContent> startNode, MapNode<TContent> destinationNode, CancellationToken cancellationToken)
-        {
-            // Initialize che collections
-            OpenClosedNodeCollection<TContent> nodeCollection = new();
-            List<Path<TContent>> resultPathList = [];
-
-            // Begin from the start node
-            MapNode<TContent> actualNode = startNode;
-            bool pathFound;
-
-            // Begin the search
-            do
-            {
-                Path<TContent> foundPath = this.FindPath(destinationNode, ref actualNode, nodeCollection, cancellationToken);
-
-                if (foundPath.Nodes.Count > 0)
-                {
-                    // Add the found path the path list
-                    resultPathList.Add(foundPath);
-
-                    // Reset the search
-                    actualNode = startNode;
-                    pathFound = true;
-                }
-                else
-                {
-                    pathFound = false;
-                }
-            }
-            while (pathFound);
-
-            // Sort all the paths and return them as array
-            resultPathList.Sort();
-
-            return [.. resultPathList];
         }
 
         #endregion
@@ -258,44 +187,6 @@ namespace AStarNet
             return this.FindBestPath(startNode, destinationNode, cancellationToken);
         }
 
-        /// <summary>
-        /// Finds all possible paths between the specified start and destination nodes in the map, identified by external identifiers.
-        /// </summary>
-        /// <param name="externalStartId">The external identifier of the start node, of type <typeparamref name="TExternalId"/>.</param>
-        /// <param name="externalDestinationId">The external identifier of the destination node, of type <typeparamref name="TExternalId"/>.</param>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
-        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
-        /// <exception cref="NullReferenceException">Thrown if the start or destination node is not present in the map.</exception>
-        public Path<TContent>[] FindAllPaths(TExternalId externalStartId, TExternalId externalDestinationId, CancellationToken cancellationToken = default)
-        {
-            // Get the start node from the node map
-            MapNode<TContent> startNode = this.NodeMap.GetNode(externalStartId) ?? throw new NullReferenceException("No start node.");
-
-            // Get the destination node from the node map
-            MapNode<TContent> destinationNode = this.NodeMap.GetNode(externalDestinationId) ?? throw new NullReferenceException("No destination node.");
-
-            return this.FindAllPaths(startNode, destinationNode, cancellationToken);
-        }
-
-        /// <summary>
-        /// Finds all possible paths between the specified start and destination nodes in the map.
-        /// </summary>
-        /// <param name="startNodeId">The unique identifier of the start node, represented by a <see cref="Guid"/>.</param>
-        /// <param name="destinationNodeId">The unique identifier of the destination node, represented by a <see cref="Guid"/>.</param>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
-        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
-        /// <exception cref="NullReferenceException">Thrown if the start or destination node is not present in the map.</exception>
-        public Path<TContent>[] FindAllPaths(Guid startNodeId, Guid destinationNodeId, CancellationToken cancellationToken = default)
-        {
-            // Get the start node from the node map
-            MapNode<TContent> startNode = this.NodeMap.GetNode(startNodeId) ?? throw new NullReferenceException("No start node.");
-
-            // Get the destination node from the node map
-            MapNode<TContent> destinationNode = this.NodeMap.GetNode(destinationNodeId) ?? throw new NullReferenceException("No destination node.");
-
-            return this.FindAllPaths(startNode, destinationNode, cancellationToken);
-        }
-
         #endregion
 
         #region Async
@@ -333,44 +224,6 @@ namespace AStarNet
             {
                 Path<TContent> resultPath = this.FindBestPath(startNodeId, destinationNodeId, cancellationToken);
                 return resultPath;
-            });
-
-            return findTask;
-        }
-
-        /// <summary>
-        /// Asynchronously finds all possible paths between the specified start and destination nodes in the map, identified by external identifiers.
-        /// </summary>
-        /// <param name="externalStartId">The external identifier of the start node, of type <typeparamref name="TExternalId"/>.</param>
-        /// <param name="externalDestinationId">The external identifier of the destination node, of type <typeparamref name="TExternalId"/>.</param>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
-        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
-        /// <exception cref="NullReferenceException">Thrown if the start or destination node is not present in the map.</exception>
-        public Task<Path<TContent>[]> FindAllPathsAsync(TExternalId externalStartId, TExternalId externalDestinationId, CancellationToken cancellationToken = default)
-        {
-            Task<Path<TContent>[]> findTask = Task.Run(() =>
-            {
-                Path<TContent>[] resultPaths = this.FindAllPaths(externalStartId, externalDestinationId, cancellationToken);
-                return resultPaths;
-            });
-
-            return findTask;
-        }
-
-        /// <summary>
-        /// Asynchronously finds all possible paths between the specified start and destination nodes in the map.
-        /// </summary>
-        /// <param name="startNodeId">The unique identifier of the start node, represented by a <see cref="Guid"/>.</param>
-        /// <param name="destinationNodeId">The unique identifier of the destination node, represented by a <see cref="Guid"/>.</param>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
-        /// <returns>An array of <see cref="Path{TContent}"/> instances representing all valid paths from the start node to the destination node. Returns an empty array if no paths are found.</returns>
-        /// <exception cref="NullReferenceException">Thrown if the start or destination node is not present in the map.</exception>
-        public Task<Path<TContent>[]> FindAllPathsAsync(Guid startNodeId, Guid destinationNodeId, CancellationToken cancellationToken = default)
-        {
-            Task<Path<TContent>[]> findTask = Task.Run(() =>
-            {
-                Path<TContent>[] resultPaths = this.FindAllPaths(startNodeId, destinationNodeId, cancellationToken);
-                return resultPaths;
             });
 
             return findTask;

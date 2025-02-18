@@ -18,7 +18,7 @@ namespace AStarNet
         public Guid Id { get; }
 
         /// <summary>
-        /// Gets the <see cref="MapNode{T}"/> used during the search to record the parent of successor nodes.
+        /// Gets the <see cref="MapNode{TContent}"/> used during the search to record the parent of successor nodes.
         /// </summary>
         public MapNode<TContent> Parent { get; }
 
@@ -48,11 +48,11 @@ namespace AStarNet
         #region Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MapNode{T}"/> class.
+        /// Initializes a new instance of the <see cref="MapNode{TContent}"/> class.
         /// </summary>
         /// <param name="id">The unique identifier of the node, represented by a <see cref="Guid"/>.</param>
         /// <param name="content">The <typeparamref name="TContent"/> content of this node.</param>
-        /// <param name="parent">The parent <see cref="MapNode{T}"/>.</param>
+        /// <param name="parent">The parent <see cref="MapNode{TContent}"/>.</param>
         /// <param name="cost">The cost of this node.</param>
         /// <param name="heuristicDistance">The heuristic distance from the destination node.</param>
         public MapNode(Guid id, TContent content, MapNode<TContent> parent, double cost, double heuristicDistance)
@@ -73,9 +73,9 @@ namespace AStarNet
         #region Equality and comparison
 
         /// <summary>
-        /// Returns a value indicating whether this istance and a specific <see cref="MapNode{T}"/> rappresent the same node.
+        /// Returns a value indicating whether this istance and a specific <see cref="MapNode{TContent}"/> rappresent the same node.
         /// </summary>
-        /// <param name="other">Other <see cref="MapNode{T}"/> istance.</param>
+        /// <param name="other">The other <see cref="MapNode{TContent}"/> to compare with the current node.</param>
         /// <returns>True if this and the other istance rappresent the same node.</returns>
         public bool Equals(MapNode<TContent> other)
         {
@@ -107,29 +107,22 @@ namespace AStarNet
         }
 
         /// <summary>
-        /// Compares first the score then the cost from start of this node with another one.
+        /// Compares this node with another one based on their score values.
         /// </summary>
-        /// <param name="other">Other <see cref="MapNode{T}"/> to compare.</param>
+        /// <param name="other">The other <see cref="MapNode{TContent}"/> to compare with the current node.</param>
         /// <returns>
-        /// <para>Less than zero: This node as the score less than other node or the score equal and the current cost less than other node.</para>
-        /// <para>Zero: This node has the score and the current cost equal to other node.</para>
-        /// <para>Greater than zero: This node as the score greater than other node or the score equal ant the current cost greater than other node.</para>
+        /// A negative value if this node's score is less than the other node's score.
+        /// Zero if the scores are equal.
+        /// A positive value if this node's score is greater than the other node's score.
         /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
         public int CompareTo(MapNode<TContent> other)
         {
             ArgumentNullException.ThrowIfNull(other);
 
-            int scoreCompare = this.Score.CompareTo(other.Score);
+            int scoreComparison = this.Score.CompareTo(other.Score);
 
-            if (scoreCompare != 0)
-            {
-                // Scores not equals: return the scores comparison
-                return scoreCompare;
-            }
-
-            // Scores equals: return the path cost comparison
-            return this.CostFromStart.CompareTo(other.CostFromStart);
+            return scoreComparison;
         }
 
         /// <inheritdoc/>

@@ -44,7 +44,7 @@ namespace AStarNet
         #region Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PathNode{T}"/> class.
+        /// Initializes a new instance of the <see cref="PathNode{TContent}"/> class.
         /// </summary>
         /// <param name="id">The unique identifier of the node, represented by a <see cref="Guid"/>.</param>
         /// <param name="content">The <typeparamref name="TContent"/> content of this node.</param>
@@ -70,9 +70,9 @@ namespace AStarNet
         #region Equality
 
         /// <summary>
-        /// Returns a value indicating whether this istance and a specific <see cref="PathNode{T}"/> rappresent the same node.
+        /// Returns a value indicating whether this istance and a specific <see cref="PathNode{TContent}"/> rappresent the same node.
         /// </summary>
-        /// <param name="other">Other <see cref="PathNode{T}"/> istance.</param>
+        /// <param name="other">The other <see cref="PathNode{TContent}"/> to compare with the current node.</param>
         /// <returns>True if this and the other istance rappresent the same node.</returns>
         public bool Equals(PathNode<TContent> other)
         {
