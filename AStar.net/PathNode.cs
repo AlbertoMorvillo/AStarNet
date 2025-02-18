@@ -37,7 +37,7 @@ namespace AStarNet
         public double CostFromStart { get; }
 
         /// <inheritdoc/>
-        public TContent Content { get; set; }
+        public TContent Content { get; }
 
         #endregion
 
@@ -52,9 +52,11 @@ namespace AStarNet
         /// <param name="indexInPath">The zero-based index of this node within the path.</param>
         /// <param name="cost">The cost of this node.</param>
         /// <param name="costFromStart">The accumulated cost from the start node to this node along the path.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content"/> is <see langword="null"/>.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="path"/> is <see langword="null"/>.</exception>
         public PathNode(Guid id, TContent content, Path<TContent> path, int indexInPath, double cost, double costFromStart)
         {
+            ArgumentNullException.ThrowIfNull(content);
             ArgumentNullException.ThrowIfNull(path);
 
             this.Id = id;
@@ -74,7 +76,7 @@ namespace AStarNet
         /// </summary>
         /// <param name="other">The other <see cref="PathNode{TContent}"/> to compare with the current node.</param>
         /// <returns>True if this and the other istance rappresent the same node.</returns>
-        public bool Equals(PathNode<TContent> other)
+        public bool Equals(PathNode<TContent>? other)
         {
             if (other is null)
                 return false;
@@ -85,7 +87,7 @@ namespace AStarNet
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(this, obj))
                 return true;
@@ -97,6 +99,22 @@ namespace AStarNet
                 return false;
 
             return this.Equals(other);
+        }
+
+        /// <summary>
+        /// Determines whether two <see cref="PathNode{TContent}"/> instances are equal.
+        /// </summary>
+        /// <param name="x">The first node to compare.</param>
+        /// <param name="y">The second node to compare.</param>
+        /// <returns>
+        /// <see langword="true"/> if both nodes are equal; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool Equals(PathNode<TContent>? x, PathNode<TContent>? y)
+        {
+            if (x is null || y is null)
+                return x is null && y is null;
+
+            return x.Equals(y);
         }
 
         /// <inheritdoc/>

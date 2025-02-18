@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/MIT
 
 using System;
+using System.Collections.Generic;
 
 namespace AStarNet
 {
@@ -13,13 +14,6 @@ namespace AStarNet
     /// <typeparam name="TContent">The type of the node content.</typeparam>
     public interface INodeMap<TExternalId, TContent>
     {
-        /// <summary>
-        /// Gets the unique identifier of a node in the map, corresponding to the specified external identifier of type <typeparamref name="TExternalId"/>.
-        /// </summary>
-        /// <param name="externalId">The external identifier representing the node, of type <typeparamref name="TExternalId"/>.</param>
-        /// <returns>The unique identifier of the node as a <see cref="Guid"/>, or <see langword="null"/> if no matching node is found.</returns>
-        Guid? GetNodeId(TExternalId externalId);
-
         /// <summary>
         /// Gets the <see cref="MapNode{TContent}"/> in the map that has the specified unique identifier.
         /// </summary>
@@ -38,21 +32,7 @@ namespace AStarNet
         /// Get the childs of a specific <see cref="MapNode{TContent}"/> in the map.
         /// </summary>
         /// <param name="currentNode">The <see cref="MapNode{TContent}"/> from which get the childs.</param>
-        /// <returns>A <see cref="MapNode{TContent}"/> array with the childs of the specific <see cref="MapNode{TContent}"/> in the map.</returns>
-        MapNode<TContent>[] GetChildNodes(MapNode<TContent> currentNode);
-
-        /// <summary>
-        /// Determines whether the map contains a node with the specified unique identifier.
-        /// </summary>
-        /// <param name="nodeId">The unique identifier of the node, represented by a <see cref="Guid"/>.</param>
-        /// <returns><see langword="true"/> if a node with the specified identifier exists in the map; otherwise, <see langword="false"/>.</returns>
-        bool ContainsNode(Guid nodeId);
-
-        /// <summary>
-        /// Determines whether the map contains a node associated with the specified external identifier of type <typeparamref name="TExternalId"/>.
-        /// </summary>
-        /// <param name="externalId">The external identifier representing the node, of type <typeparamref name="TExternalId"/>.</param>
-        /// <returns><see langword="true"/> if a node associated with the specified external identifier exists in the map; otherwise, <see langword="false"/>.</returns>
-        bool ContainsNode(TExternalId externalId);
+        /// <returns>An <see cref="IEnumerable{T}"/> containing the child nodes of the specified <see cref="MapNode{TContent}"/>.</returns>
+        IEnumerable<MapNode<TContent>> GetChildNodes(MapNode<TContent> currentNode);
     }
 }

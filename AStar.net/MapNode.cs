@@ -10,7 +10,7 @@ namespace AStarNet
     ///Defines a noode used in the A* algorithm to perform the path search.
     /// </summary>
     /// <typeparam name="TContent">The type of the node content.</typeparam>
-    public class MapNode<TContent> : INode<TContent>, IEquatable<MapNode<TContent>>, IComparable<MapNode<TContent>>
+    public class MapNode<TContent> : INode<TContent>, IComparable, IComparable<MapNode<TContent>>, IEquatable<MapNode<TContent>>
     {
         #region Properties
 
@@ -20,7 +20,7 @@ namespace AStarNet
         /// <summary>
         /// Gets the <see cref="MapNode{TContent}"/> used during the search to record the parent of successor nodes.
         /// </summary>
-        public MapNode<TContent> Parent { get; }
+        public MapNode<TContent>? Parent { get; }
 
         /// <inheritdoc/>
         public double Cost { get; }
@@ -41,7 +41,7 @@ namespace AStarNet
         public double Score { get; }
 
         /// <inheritdoc/>
-        public TContent Content { get; set; }
+        public TContent Content { get; }
 
         #endregion
 
@@ -55,8 +55,11 @@ namespace AStarNet
         /// <param name="parent">The parent <see cref="MapNode{TContent}"/>.</param>
         /// <param name="cost">The cost of this node.</param>
         /// <param name="heuristicDistance">The heuristic distance from the destination node.</param>
-        public MapNode(Guid id, TContent content, MapNode<TContent> parent, double cost, double heuristicDistance)
+        /// <exception cref="ArgumentNullException"><paramref name="content"/> is <see langword="null"/>.</exception>
+        public MapNode(Guid id, TContent content, MapNode<TContent>? parent, double cost, double heuristicDistance)
         {
+            ArgumentNullException.ThrowIfNull(content);
+
             double parentCostFromStart = parent is null ? 0 : parent.CostFromStart;
 
             this.Id = id;
@@ -73,11 +76,65 @@ namespace AStarNet
         #region Equality and comparison
 
         /// <summary>
+        /// Compares this node with another one based on their score values.
+        /// </summary>
+        /// <param name="other">The other <see cref="MapNode{TContent}"/> to compare with the current node.</param>
+        /// <returns>
+        /// A negative value if this node's score is less than the other node's score.
+        /// Zero if the scores are equal.
+        /// A positive value if this node's score is greater than the other node's score.
+        /// </returns>
+        /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
+        public int CompareTo(MapNode<TContent>? other)
+        {
+            ArgumentNullException.ThrowIfNull(other);
+
+            int scoreComparison = this.Score.CompareTo(other.Score);
+
+            return scoreComparison;
+        }
+
+        /// <inheritdoc/>
+        public int CompareTo(object? obj)
+        {
+            if (obj is null)
+                return 1;
+
+            if (obj is not MapNode<TContent> other)
+            {
+                throw new ArgumentException($"Object must be of type {nameof(MapNode<TContent>)}.", nameof(obj));
+            }
+
+            return this.CompareTo(other);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="MapNode{TContent}"/> instances.
+        /// </summary>
+        /// <param name="x">The first node to compare.</param>
+        /// <param name="y">The second node to compare.</param>
+        /// <returns>
+        /// A negative value if <paramref name="x"/> is less than <paramref name="y"/>.
+        /// Zero if they are equal.
+        /// A positive value if <paramref name="x"/> is greater than <paramref name="y"/>.
+        /// </returns>
+        public static int Compare(MapNode<TContent>? x, MapNode<TContent>? y)
+        {
+            if (x is null)
+                return y is null ? 0 : -1;
+
+            if (y is null)
+                return 1;
+
+            return x.CompareTo(y);
+        }
+
+        /// <summary>
         /// Returns a value indicating whether this istance and a specific <see cref="MapNode{TContent}"/> rappresent the same node.
         /// </summary>
         /// <param name="other">The other <see cref="MapNode{TContent}"/> to compare with the current node.</param>
         /// <returns>True if this and the other istance rappresent the same node.</returns>
-        public bool Equals(MapNode<TContent> other)
+        public bool Equals(MapNode<TContent>? other)
         {
             if (other is null)
                 return false;
@@ -86,7 +143,7 @@ namespace AStarNet
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(this, obj))
                 return true;
@@ -100,29 +157,26 @@ namespace AStarNet
             return this.Equals(other);
         }
 
+        /// <summary>
+        /// Determines whether two <see cref="MapNode{TContent}"/> instances are equal.
+        /// </summary>
+        /// <param name="x">The first node to compare.</param>
+        /// <param name="y">The second node to compare.</param>
+        /// <returns>
+        /// <see langword="true"/> if both nodes are equal; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool Equals(MapNode<TContent>? x, MapNode<TContent>? y)
+        {
+            if (x is null || y is null)
+                return x is null && y is null;
+
+            return x.Equals(y);
+        }
+
         /// <inheritdoc/>
         public override int GetHashCode()
         {
             return HashCode.Combine(this.Id);
-        }
-
-        /// <summary>
-        /// Compares this node with another one based on their score values.
-        /// </summary>
-        /// <param name="other">The other <see cref="MapNode{TContent}"/> to compare with the current node.</param>
-        /// <returns>
-        /// A negative value if this node's score is less than the other node's score.
-        /// Zero if the scores are equal.
-        /// A positive value if this node's score is greater than the other node's score.
-        /// </returns>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
-        public int CompareTo(MapNode<TContent> other)
-        {
-            ArgumentNullException.ThrowIfNull(other);
-
-            int scoreComparison = this.Score.CompareTo(other.Score);
-
-            return scoreComparison;
         }
 
         /// <inheritdoc/>

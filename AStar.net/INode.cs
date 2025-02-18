@@ -25,9 +25,9 @@ namespace AStarNet
         double Cost { get; }
 
         /// <summary>
-        /// Gets or sets the <typeparamref name="TContent"/> content of this node.
+        /// Gets the <typeparamref name="TContent"/> content of this node.
         /// </summary>
-        TContent Content { get; set; }
+        TContent Content { get; }
 
         #endregion
     }

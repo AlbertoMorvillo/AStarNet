@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 
 namespace AStarNet
@@ -12,7 +13,7 @@ namespace AStarNet
     /// Contains the node sequence which defines the path, sorted from start to destination node.
     /// </summary>
     /// <typeparam name="TContent">The type of content associated with the path nodes.</typeparam>
-    public class Path<TContent> : IComparable<Path<TContent>>, IEquatable<Path<TContent>>
+    public class Path<TContent> : IComparable, IComparable<Path<TContent>>, IEquatable<Path<TContent>>
     {
         #region Fields
 
@@ -47,7 +48,7 @@ namespace AStarNet
         /// <summary>
         /// Gets or sets the generic tag of this path.
         /// </summary>
-        public object Tag { get; set; }
+        public object? Tag { get; set; }
 
         /// <summary>
         /// Returns an empty path.
@@ -65,7 +66,11 @@ namespace AStarNet
         public Path(Guid id)
         {
             this.Id = id;
-            this.Nodes = [];
+
+#pragma warning disable IDE0301 // Simplify collection initialization
+            this.Nodes = ImmutableArray<PathNode<TContent>>.Empty;
+#pragma warning restore IDE0301 // Simplify collection initialization
+
             this.Cost = 0;
 
             this._precomputedHashCode = this.GenerateHashCode();
@@ -96,7 +101,10 @@ namespace AStarNet
                 i++;
             }
 
-            this.Nodes = [.. pathNodes];
+#pragma warning disable IDE0305 // Simplify collection initialization
+            this.Nodes = pathNodes.ToImmutableArray();
+#pragma warning restore IDE0305 // Simplify collection initialization
+
             this.Cost = this.Nodes.Count > 0 ? this.Nodes[^1].CostFromStart : 0;
 
             this._precomputedHashCode = this.GenerateHashCode();
@@ -191,43 +199,6 @@ namespace AStarNet
         #region Equality and comparison
 
         /// <summary>
-        /// Returns a value indicating whether this istance and a specific <see cref="Path{TContent}"/> rappresent the same path.
-        /// </summary>
-        /// <param name="other">The other <see cref="Path{TContent}"/> compare with the current path.</param>
-        /// <returns>True if this and the other istance rappresent the same path.</returns>
-        public bool Equals(Path<TContent> other)
-        {
-            if (other is null)
-                return false;
-
-            if (this.CompareTo(other) != 0)
-                return false;
-
-            return this.Nodes.SequenceEqual(other.Nodes);
-        }
-
-        /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(this, obj))
-                return true;
-
-            if (obj is null)
-                return false;
-
-            if (obj is not Path<TContent> other)
-                return false;
-
-            return this.Equals(other);
-        }
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return this._precomputedHashCode;
-        }
-
-        /// <summary>
         /// Compares first the cost then the number of nodes of this path with another one.
         /// </summary>
         /// <param name="other">The other <see cref="Path{TContent}"/> to compare with the current path.</param>
@@ -237,7 +208,7 @@ namespace AStarNet
         /// <para>Greater than zero: This path has the cost greater than other node or the cost equal and more nodes than the other path.</para>
         /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
-        public int CompareTo(Path<TContent> other)
+        public int CompareTo(Path<TContent>? other)
         {
             ArgumentNullException.ThrowIfNull(other);
 
@@ -251,6 +222,94 @@ namespace AStarNet
 
             // Cost equals: return the path node count comparison
             return this.Nodes.Count.CompareTo(other.Nodes.Count);
+        }
+
+        /// <inheritdoc/>
+        public int CompareTo(object? obj)
+        {
+            if (obj is null)
+                return 1;
+
+            if (obj is not Path<TContent> other)
+            {
+                throw new ArgumentException($"Object must be of type {nameof(Path<TContent>)}.", nameof(obj));
+            }
+
+            return this.CompareTo(other);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="Path{TContent}"/> instances.
+        /// </summary>
+        /// <param name="x">The first path to compare.</param>
+        /// <param name="y">The second path to compare.</param>
+        /// <returns>
+        /// A negative value if <paramref name="x"/> is less than <paramref name="y"/>.
+        /// Zero if they are equal.
+        /// A positive value if <paramref name="x"/> is greater than <paramref name="y"/>.
+        /// </returns>
+        public static int Compare(Path<TContent>? x, Path<TContent>? y)
+        {
+            if (x is null)
+                return y is null ? 0 : -1;
+
+            if (y is null)
+                return 1;
+
+            return x.CompareTo(y);
+        }
+
+        /// <summary>
+        /// Returns a value indicating whether this istance and a specific <see cref="Path{TContent}"/> rappresent the same path.
+        /// </summary>
+        /// <param name="other">The other <see cref="Path{TContent}"/> compare with the current path.</param>
+        /// <returns>True if this and the other istance rappresent the same path.</returns>
+        public bool Equals(Path<TContent>? other)
+        {
+            if (other is null)
+                return false;
+
+            if (this.CompareTo(other) != 0)
+                return false;
+
+            return this.Nodes.SequenceEqual(other.Nodes);
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj)
+        {
+            if (ReferenceEquals(this, obj))
+                return true;
+
+            if (obj is null)
+                return false;
+
+            if (obj is not Path<TContent> other)
+                return false;
+
+            return this.Equals(other);
+        }
+
+        /// <summary>
+        /// Determines whether two <see cref="Path{TContent}"/> instances are equal.
+        /// </summary>
+        /// <param name="x">The first path to compare.</param>
+        /// <param name="y">The second path to compare.</param>
+        /// <returns>
+        /// <see langword="true"/> if both paths are equal; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool Equals(Path<TContent>? x, Path<TContent>? y)
+        {
+            if (x is null || y is null)
+                return x is null && y is null;
+
+            return x.Equals(y);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return this._precomputedHashCode;
         }
 
         /// <inheritdoc/>

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+	 <Nullable>enable</Nullable>
     <RootNamespace>AStarNet</RootNamespace>
     <ApplicationIcon>AStar.ico</ApplicationIcon>
     <Authors>Alberto Morvillo</Authors>
@@ -21,15 +22,18 @@
 This version introduces significant breaking changes that may require updates to your existing code.
 
 - Migrated from .NET Standard 2.0 to .NET 8.0
-- Replaced internal thread management with Task-based parallelism and Cancellation Tokens
-- Introduced support for external node identifiers via a second generic type parameter
-- Improved path and node data structure for clarity and robustness
-- Path node collections are now immutable
 - Added new convenience methods for working with paths and nodes
-- Performance optimizations
+- Replaced internal thread management with Task-based parallelism and Cancellation Tokens
+- Improved path and node data structure for clarity and robustness
+- Improved the handling of start and destination nodes, decoupling their selection from the node map structure
+- Path node collections are now immutable
+- Removed the logic for finding all paths, focusing on the best path (following A* logic).
+- Revised node content handling: content is now mandatory and immutable once assigned to a node.
 - Removed obsolete types and members
+- Performance optimizations
 
 Review your code for compatibility before upgrading.</PackageReleaseNotes>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
