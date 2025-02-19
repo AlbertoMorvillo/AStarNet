@@ -65,12 +65,11 @@ namespace AStarNet
         /// <param name="id">The unique identifier of the path, represented by a <see cref="Guid"/>.</param>
         public Path(Guid id)
         {
+            // Ensures this.Nodes is an ImmutableArray.
+            ImmutableArray<PathNode<TContent>> nodeArray = [];
+
             this.Id = id;
-
-#pragma warning disable IDE0301 // Simplify collection initialization
-            this.Nodes = ImmutableArray<PathNode<TContent>>.Empty;
-#pragma warning restore IDE0301 // Simplify collection initialization
-
+            this.Nodes = nodeArray;
             this.Cost = 0;
 
             this._precomputedHashCode = this.GenerateHashCode();
@@ -90,8 +89,6 @@ namespace AStarNet
             int i = 0;
             double costFromStart = 0.0;
 
-            this.Id = id;
-
             foreach(INode<TContent> node in nodes)
             {
                 costFromStart += node.Cost;
@@ -101,10 +98,11 @@ namespace AStarNet
                 i++;
             }
 
-#pragma warning disable IDE0305 // Simplify collection initialization
-            this.Nodes = pathNodes.ToImmutableArray();
-#pragma warning restore IDE0305 // Simplify collection initialization
+            // Ensures this.Nodes is an ImmutableArray.
+            ImmutableArray<PathNode<TContent>> nodeArray = [.. pathNodes];
 
+            this.Id = id;
+            this.Nodes = nodeArray;
             this.Cost = this.Nodes.Count > 0 ? this.Nodes[^1].CostFromStart : 0;
 
             this._precomputedHashCode = this.GenerateHashCode();
@@ -216,11 +214,11 @@ namespace AStarNet
 
             if (costCompare != 0)
             {
-                // Cost not equals: return the path cost comparison
+                // Cost not equals: return the path cost comparison.
                 return costCompare;
             }
 
-            // Cost equals: return the path node count comparison
+            // Cost equals: return the path node count comparison.
             return this.Nodes.Count.CompareTo(other.Nodes.Count);
         }
 
