@@ -1,36 +1,33 @@
-﻿using System;
+﻿// Copyright (c) 2025 Alberto Morvillo
+// Distributed under MIT license
+// https://opensource.org/licenses/MIT
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace AStarNet.Comparers
+namespace AStarNet.Utils
 {
     /// <summary>
-    /// Provides a base class for comparing <see cref="Path{TContent}"/> instances according to specific criteria.
+    /// Provides a base class for comparing <see cref="Path{TId}"/> instances according to specific criteria.
     /// </summary>
     /// <remarks>
     /// Use <see cref="ByCost"/> or <see cref="ByNodeCount"/> to obtain predefined comparers.
     /// </remarks>
-    /// <typeparam name="TContent">
-    /// The type of content associated with each node in the path.
-    /// </typeparam>
-    public abstract class PathComparer<TContent> : IComparer, IEqualityComparer, IComparer<Path<TContent>>, IEqualityComparer<Path<TContent>>
+    /// <typeparam name="TId">The type of the identifier for the nodes in the path.</typeparam>
+    public abstract class PathComparer<TId> : IComparer, IEqualityComparer, IComparer<Path<TId>>, IEqualityComparer<Path<TId>> where TId : notnull
     {
         #region Properties
 
         /// <summary>
-        /// Gets a <see cref="PathComparer{TContent}"/> that compares paths based on their total cost.
+        /// Gets a <see cref="PathComparer{TId}"/> that compares paths based on their total cost.
         /// </summary>
-        public static PathComparer<TContent> ByCost => new PathCostComparer();
+        public static PathComparer<TId> ByCost => new PathCostComparer();
 
         /// <summary>
-        /// Gets a <see cref="PathComparer{TContent}"/> that compares paths based on their number of nodes.
+        /// Gets a <see cref="PathComparer{TId}"/> that compares paths based on their number of nodes.
         /// </summary>
-        public static PathComparer<TContent> ByNodeCount => new PathNodeCountComparer();
+        public static PathComparer<TId> ByNodeCount => new PathNodeCountComparer();
 
         #endregion
 
@@ -39,7 +36,7 @@ namespace AStarNet.Comparers
         /// <inheritdoc />
         public int Compare(object? x, object? y)
         {
-            if (x is Path<TContent> xPath && y is Path<TContent> yPath)
+            if (x is Path<TId> xPath && y is Path<TId> yPath)
             {
                 return this.Compare(xPath, yPath);
             }
@@ -59,13 +56,13 @@ namespace AStarNet.Comparers
                 return 1;
             }
 
-            throw new ArgumentException($"Both parameters must be of type {nameof(Path<TContent>)}.", nameof(x));
+            throw new ArgumentException($"Both parameters must be of type {nameof(Path<TId>)}.", nameof(x));
         }
 
         /// <inheritdoc />
         public new bool Equals(object? x, object? y)
         {
-            if (x is Path<TContent> xPath && y is Path<TContent> yPath)
+            if (x is Path<TId> xPath && y is Path<TId> yPath)
             {
                 return this.Equals(xPath, yPath);
             }
@@ -76,37 +73,38 @@ namespace AStarNet.Comparers
         /// <inheritdoc />
         public int GetHashCode(object obj)
         {
-            if (obj is Path<TContent> path)
+            if (obj is Path<TId> path)
             {
                 return this.GetHashCode(path);
             }
 
-            throw new ArgumentException($"Object must be of type {nameof(Path<TContent>)}.", nameof(obj));
+            throw new ArgumentException($"Object must be of type {nameof(Path<TId>)}.", nameof(obj));
         }
 
         #endregion
 
         #region Abstract IComparer<T> and IEqualityComparer<T>
-        /// <inheritdoc />
-        public abstract int Compare(Path<TContent>? x, Path<TContent>? y);
 
         /// <inheritdoc />
-        public abstract bool Equals(Path<TContent>? x, Path<TContent>? y);
+        public abstract int Compare(Path<TId>? x, Path<TId>? y);
 
         /// <inheritdoc />
-        public abstract int GetHashCode(Path<TContent> obj);
+        public abstract bool Equals(Path<TId>? x, Path<TId>? y);
+
+        /// <inheritdoc />
+        public abstract int GetHashCode(Path<TId> obj);
 
         #endregion
 
         #region Derived classes
 
         /// <summary>
-        /// Compares two <see cref="Path{TContent}"/> instances based on their total cost.
+        /// Compares two <see cref="Path{TId}"/> instances based on their total cost.
         /// </summary>
-        private sealed class PathCostComparer: PathComparer<TContent>
+        private sealed class PathCostComparer: PathComparer<TId>
         {
             /// <inheritdoc />
-            public override int Compare(Path<TContent>? x, Path<TContent>? y)
+            public override int Compare(Path<TId>? x, Path<TId>? y)
             {
                 if (x is null)
                     return y is null ? 0 : -1;
@@ -120,7 +118,7 @@ namespace AStarNet.Comparers
             }
 
             /// <inheritdoc />
-            public override bool Equals(Path<TContent>? x, Path<TContent>? y)
+            public override bool Equals(Path<TId>? x, Path<TId>? y)
             {
                 if (x is null || y is null)
                     return x is null && y is null;
@@ -129,7 +127,7 @@ namespace AStarNet.Comparers
             }
 
             /// <inheritdoc />
-            public override int GetHashCode(Path<TContent> obj)
+            public override int GetHashCode(Path<TId> obj)
             {
                 ArgumentNullException.ThrowIfNull(obj);
 
@@ -138,12 +136,12 @@ namespace AStarNet.Comparers
         }
 
         /// <summary>
-        /// Compares two <see cref="Path{TContent}"/> instances based on the number of nodes they contain.
+        /// Compares two <see cref="Path{TId}"/> instances based on the number of nodes they contain.
         /// </summary>
-        private sealed class PathNodeCountComparer : PathComparer<TContent>
+        private sealed class PathNodeCountComparer : PathComparer<TId>
         {
             /// <inheritdoc />
-            public override int Compare(Path<TContent>? x, Path<TContent>? y)
+            public override int Compare(Path<TId>? x, Path<TId>? y)
             {
                 if (x is null)
                     return y is null ? 0 : -1;
@@ -157,7 +155,7 @@ namespace AStarNet.Comparers
             }
 
             /// <inheritdoc />
-            public override bool Equals(Path<TContent>? x, Path<TContent>? y)
+            public override bool Equals(Path<TId>? x, Path<TId>? y)
             {
                 if (x is null || y is null)
                     return x is null && y is null;
@@ -166,7 +164,7 @@ namespace AStarNet.Comparers
             }
 
             /// <inheritdoc />
-            public override int GetHashCode(Path<TContent> obj)
+            public override int GetHashCode(Path<TId> obj)
             {
                 ArgumentNullException.ThrowIfNull(obj);
 

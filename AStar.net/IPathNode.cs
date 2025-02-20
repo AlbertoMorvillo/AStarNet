@@ -9,15 +9,15 @@ namespace AStarNet
     /// <summary>
     /// Defines a generic node used within a navigation or pathfinding process.
     /// </summary>
-    /// <typeparam name="TContent">The type of the node content.</typeparam>
-    public interface INode<TContent>
+    /// <typeparam name="TId">The type of the node identifier.</typeparam>
+    public interface IPathNode<TId> : IEquatable<IPathNode<TId>> where TId : notnull
     {
         #region Properties
 
         /// <summary>
-        /// Gets the unique identifier of the node.
+        /// Gets the identifier of the node.
         /// </summary>
-        Guid Id { get; }
+        TId Id { get; }
 
         /// <summary>
         /// Gets the cost of this node.
@@ -25,11 +25,10 @@ namespace AStarNet
         double Cost { get; }
 
         /// <summary>
-        /// Gets the <typeparamref name="TContent"/> content of this node.
+        /// Gets the optional content of this node. Can be <see langword="null"/> if no content is associated.
         /// </summary>
-        TContent Content { get; }
+        object? Content { get; }
 
         #endregion
     }
-
 }

@@ -59,4 +59,8 @@ Review your code for compatibility before upgrading.</PackageReleaseNotes>
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="PathFinding\" />
+  </ItemGroup>
+
 </Project>
