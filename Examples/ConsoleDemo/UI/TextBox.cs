@@ -7,7 +7,6 @@ using System.Text;
 
 namespace ConsoleDemo.UI
 {
-
     /// <summary>
     /// Represents a text box that formats and displays text on the console with color support.
     /// The text box manages a list of lines and supports writing text with automatic wrapping.
@@ -193,14 +192,7 @@ namespace ConsoleDemo.UI
         /// </summary>
         public void BeginWrite()
         {
-            this._lines.Clear();
-
-            // Clear the text box area by writing blank spaces.
-            for (int i = 0; i < this.Height; i++)
-            {
-                Console.SetCursorPosition(this.Left, this.Top + i);
-                Console.Write(new string(' ', this.Width));
-            }
+            this.Clear();
         }
 
         /// <summary>
@@ -240,6 +232,7 @@ namespace ConsoleDemo.UI
         /// </summary>
         public void EndWrite()
         {
+            Encoding previousEncode = Console.OutputEncoding;
             Console.OutputEncoding = Encoding.Unicode;
 
             if (this._lines.Count == 0)
@@ -277,6 +270,23 @@ namespace ConsoleDemo.UI
             }
 
             this._lines.Clear();
+
+            Console.OutputEncoding = previousEncode;
+        }
+
+        /// <summary>
+        /// Clears the text box area by erasing the stored lines and writing blank spaces.
+        /// </summary>
+        public void Clear()
+        {
+            this._lines.Clear();
+
+            // Clear the text box area by writing blank spaces.
+            for (int i = 0; i < this.Height; i++)
+            {
+                Console.SetCursorPosition(this.Left, this.Top + i);
+                Console.Write(new string(' ', this.Width));
+            }
         }
 
         #endregion

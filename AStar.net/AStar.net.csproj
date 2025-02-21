@@ -34,6 +34,7 @@
 		<Description>.Net implementation of the A* path finding algorithm</Description>
 		<Copyright>Alberto Morvillo</Copyright>
 		<Title>$(AssemblyName)</Title>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	</PropertyGroup>
 	
 	<ItemGroup>

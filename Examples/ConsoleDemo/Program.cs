@@ -56,15 +56,18 @@ void FindPath()
 TextBox infoBox = new() { Left = matrixWidth + 10, Top = 3, Width = 50, Height = 20 };
 
 infoBox.BeginWrite();
-infoBox.WriteLine("AStar.net Console Demo");
+infoBox.WriteLine("<cyan>AStar.net Console Demo</cyan>");
 infoBox.WriteLine();
-infoBox.WriteLine("Use ← ↑ → ↓ to move the cursor");
+infoBox.WriteLine("Use <darkcyan>← ↑ → ↓</darkcyan> to move the cursor");
 infoBox.WriteLine();
 infoBox.WriteLine("<yellow>S:</yellow> place or remove the starting point.");
 infoBox.WriteLine("<green>D:</green> place or remove the destination point.");
 infoBox.WriteLine("<red>X or Space:</red> place or remove a wall block.");
 infoBox.WriteLine();
 infoBox.WriteLine("<cyan>Enter:</cyan> start the path finding.");
+infoBox.WriteLine();
+infoBox.WriteLine("<darkyellow>Backspace:</darkyellow> clear the path.");
+infoBox.WriteLine("<red>Clear:</red> clear everything.");
 infoBox.WriteLine();
 infoBox.WriteLine("<blue>Esc:</blue> exit.");
 infoBox.EndWrite();
@@ -82,6 +85,30 @@ void ShowMessage(string message)
     messageBox.EndWrite();
 }
 
+bool PromptConfirmation()
+{
+    messageBox.BeginWrite();
+    messageBox.WriteLine("<darkyellow>Are you sure? (Y/N)</darkyellow>");
+    messageBox.EndWrite();
+
+    do
+    {
+        ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+
+        if (keyInfo.Key == ConsoleKey.Y)
+        {
+            messageBox.Clear();
+            return true;
+        }
+        else if (keyInfo.Key == ConsoleKey.N)
+        {
+            messageBox.Clear();
+            return false;
+        }
+    }
+    while (true);
+}
+
 #endregion
 
 #region Grid box
@@ -97,11 +124,11 @@ GridBox gridBox = new(matrixMap)
     EmptyPointColor = ConsoleColor.DarkGray
 };
 
-gridBox.Draw(startPoint, destinationPoint);
+gridBox.Draw(startPoint, destinationPoint, path);
 
 #endregion
 
-#region Input check
+#region Input and refresh loop
 
 while (true)
 {
@@ -118,24 +145,39 @@ while (true)
         // S: place, change or remove starting point.
         case ConsoleKey.S:
             UpdatePoint(ref startPoint, gridBox.MarkerX, gridBox.MarkerY);
+            gridBox.UpdateContent(startPoint, destinationPoint, path);
             break;
 
         // D: place, change or remove destination point.
         case ConsoleKey.D:
             UpdatePoint(ref destinationPoint, gridBox.MarkerX, gridBox.MarkerY);
+            gridBox.UpdateContent(startPoint, destinationPoint, path);
             break;
 
-        // Enter: start path finding
+        // Enter: start path finding.
         case ConsoleKey.Enter:
             FindPath();
+            gridBox.UpdateContent(startPoint, destinationPoint, path);
             break;
 
-        // Close the console
+        // Backspace: clear the path.
+        case ConsoleKey.Backspace:
+            path = null;
+            gridBox.UpdateContent(startPoint, destinationPoint, path);
+            break;
+
+        // Delete: clear everything (start point, destination point, wall blocks, path)
+        case ConsoleKey.Delete:
+            Clear();
+            gridBox.UpdateContent(startPoint, destinationPoint, path);
+            break;
+
+        // Close the console.
         case ConsoleKey.Escape:
             return;
     }
 
-    gridBox.UpdateCursor(keyInfo.Key, startPoint, destinationPoint);
+    gridBox.UpdateCursor(keyInfo.Key, startPoint, destinationPoint, path);
 }
 
 #endregion
@@ -149,6 +191,7 @@ void UpdateWallBlock(int x, int y)
 
 void UpdatePoint(ref Vector2? point, int x, int y)
 {
+    // Ensure that the cell is not a wall.
     matrixMap.WallBlocks[x, y] = false;
 
     if (!point.HasValue)
@@ -163,6 +206,17 @@ void UpdatePoint(ref Vector2? point, int x, int y)
     {
         point = null;
     }
+}
+
+void Clear()
+{
+    if (!PromptConfirmation())
+        return;
+
+    Array.Clear(matrixMap.WallBlocks);
+    startPoint = null;
+    destinationPoint = null;
+    path = null;
 }
 
 #endregion

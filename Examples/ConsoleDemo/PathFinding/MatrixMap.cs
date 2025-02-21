@@ -10,7 +10,7 @@ using System.Numerics;
 namespace ConsoleDemo.PathFinding
 {
     /// <summary>
-    /// Represents a 2-dimension matrix navigable using the A* algorithm.
+    /// Represents a two-dimensional matrix navigable using the A* algorithm.
     /// </summary>
     public class MatrixMap : INodeMap<Vector2>, IHeuristicProvider<Vector2>
     {
@@ -26,6 +26,10 @@ namespace ConsoleDemo.PathFinding
         /// </summary>
         public int Height { get; }
 
+        /// <summary>
+        /// Gets a two-dimensional array indicating which cells in the matrix are wall blocks.
+        /// A value of true indicates that the cell is blocked.
+        /// </summary>
         public bool[,] WallBlocks { get; }
 
         /// <summary>
@@ -94,7 +98,6 @@ namespace ConsoleDemo.PathFinding
         public IPathNode<Vector2>? GetNode(Vector2 id)
         {
             // Check for out of bounds
-
             if (id.X < 0 || id.X >= this.Width)
                 return null;
 
