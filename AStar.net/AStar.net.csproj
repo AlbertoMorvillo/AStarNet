@@ -1,62 +1,54 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿
+<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-	 <Nullable>enable</Nullable>
-    <RootNamespace>AStarNet</RootNamespace>
-    <ApplicationIcon>AStar.ico</ApplicationIcon>
-    <Authors>Alberto Morvillo</Authors>
-    <Description>.Net implementation of the A* path finding algorithm.</Description>
-    <RepositoryUrl>https://github.com/AlbertoMorvillo/AStarNet</RepositoryUrl>
-    <Copyright>Alberto Morvillo</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>A*, path finding</PackageTags>
-    <PackageIconUrl></PackageIconUrl>
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <FileVersion>1.1.0.0</FileVersion>
-    <Version>2.0.0</Version>
-    <PackageIcon>AStar.png</PackageIcon>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageReleaseNotes>Version 2.0.0 – IMPORTANT NOTICE
-This version introduces significant breaking changes that may require updates to your existing code.
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>AStarNet</RootNamespace>
+		<ApplicationIcon>AStar.ico</ApplicationIcon>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Authors>Alberto Morvillo</Authors>
+		<PackageTags>A*, path finding</PackageTags>
+		<RepositoryUrl>https://github.com/AlbertoMorvillo/AStarNet</RepositoryUrl>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>AStar.png</PackageIcon>
+		<VersionPrefix>2.0.0</VersionPrefix>
+		<PackageVersion>$(VersionPrefix)</PackageVersion>
+		<AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+		<FileVersion>$(VersionPrefix).0</FileVersion>    
+		<PackageReleaseNotes>Version 2.0.0 – IMPORTANT NOTICE
+		This version introduces significant breaking changes that may require updates to your existing code.
 
-- Migrated from .NET Standard 2.0 to .NET 8.0
-- Added new convenience methods for working with paths and nodes
-- Replaced internal thread management with Task-based parallelism and Cancellation Tokens
-- Improved path and node data structure for clarity and robustness
-- Improved the handling of start and destination nodes, decoupling their selection from the node map structure
-- Path node collections are now immutable
-- Removed the logic for finding all paths, focusing on the best path (following A* logic).
-- Revised node content handling: content is now mandatory and immutable once assigned to a node.
-- Removed obsolete types and members
-- Performance optimizations
-
-Review your code for compatibility before upgrading.</PackageReleaseNotes>
-    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>C:\Users\alber\Documents\Sorgenti\AStar.net\AStar.net\AStar.net.xml</DocumentationFile>
-    <NoWarn />
-    <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>C:\Users\alber\Documents\Sorgenti\AStar.net\AStar.net\AStar.net.xml</DocumentationFile>
-    <NoWarn />
-    <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="AStar.png">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
+		- Migrated from .NET Standard 2.0 to .NET 8.0
+		- Added new convenience methods for working with paths and nodes
+		- Replaced internal thread management with Task-based parallelism and Cancellation Tokens
+		- Improved path and node data structure for clarity and robustness
+		- Improved the handling of start and destination nodes, decoupling their selection from the node map structure
+		- Path node collections are now immutable
+		- Removed the logic for finding all paths, focusing on the best path (following A* logic).
+		- Revised node content handling: content is now mandatory and immutable once assigned to a node.
+		- Removed obsolete types and members
+		- Performance optimizations</PackageReleaseNotes>
+		<Description>.Net implementation of the A* path finding algorithm</Description>
+		<Copyright>Alberto Morvillo</Copyright>
+		<Title>$(AssemblyName)</Title>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<None Update="AStar.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="LICENSE">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>

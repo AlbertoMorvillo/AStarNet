@@ -51,6 +51,11 @@ namespace AStarNet
         public object? Tag { get; set; }
 
         /// <summary>
+        /// Returns true if the path contains no nodes.
+        /// </summary>
+        public bool IsEmpty => this.Nodes.Count == 0;
+
+        /// <summary>
         /// Returns an empty path.
         /// </summary>
         public static Path<TId> Empty { get; } = new Path<TId>(Guid.Empty);
@@ -97,31 +102,6 @@ namespace AStarNet
 
         #endregion
 
-        #region Protected methods
-
-        /// <summary>
-        /// Generates the hash code for the current path instance by combining the total cost and the identifiers of the nodes.
-        /// </summary>
-        /// <returns>The computed hash code as an <see cref="int"/>.</returns>
-        /// <remarks>
-        /// The hash is computed using the total path cost and the node identifiers, preserving their order.
-        /// This method is intended to be used within the constructor and stored, as the path is immutable.
-        /// </remarks>
-        protected int GenerateHashCode()
-        {
-            HashCode hash = new();
-            hash.Add(this.Cost);
-
-            foreach (var node in this.Nodes)
-            {
-                hash.Add(node.Id);
-            }
-
-            return hash.ToHashCode();
-        }
-
-        #endregion
-
         #region Public methods
 
         #region Others
@@ -134,7 +114,7 @@ namespace AStarNet
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0 or greater than or equal to the number of nodes in the path.</exception>
         public double GetCostAtIndex(int index)
         {
-            if (index < 0 || index >= Nodes.Count)
+            if (index < 0 || index >= this.Nodes.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(index), "Index is out of range.");
             }
@@ -368,6 +348,31 @@ namespace AStarNet
         }
 
         #endregion
+
+        #endregion
+
+        #region Protected methods
+
+        /// <summary>
+        /// Generates the hash code for the current path instance by combining the total cost and the identifiers of the nodes.
+        /// </summary>
+        /// <returns>The computed hash code as an <see cref="int"/>.</returns>
+        /// <remarks>
+        /// The hash is computed using the total path cost and the node identifiers, preserving their order.
+        /// This method is intended to be used within the constructor and stored, as the path is immutable.
+        /// </remarks>
+        protected int GenerateHashCode()
+        {
+            HashCode hash = new();
+            hash.Add(this.Cost);
+
+            foreach (var node in this.Nodes)
+            {
+                hash.Add(node.Id);
+            }
+
+            return hash.ToHashCode();
+        }
 
         #endregion
     }

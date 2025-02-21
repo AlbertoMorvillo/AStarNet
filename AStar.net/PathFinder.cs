@@ -112,6 +112,57 @@ namespace AStarNet
 
         #endregion
 
+        #region Public methods
+
+        #region Sync
+
+        /// <summary>
+        /// Finds the optimal path between the specified start and destination nodes in the map.
+        /// </summary>
+        /// <param name="startNodeId">The identifier of the start node.</param>
+        /// <param name="destinationNodeId">The identifier of the destination node.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
+        /// <returns>A <see cref="Path{TId}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TId}.Empty"/> if no path is found.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the start or destination node could not be found in the map.</exception>
+        public Path<TId> FindOptimalPath(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
+        {
+            // Get the start node from the node map.
+            IPathNode<TId> startNode = this.NodeMap.GetNode(startNodeId)
+                ?? throw new KeyNotFoundException($"Start node with ID '{startNodeId}' was not found.");
+
+            // Get the destination node from the node map.
+            IPathNode<TId> destinationNode = this.NodeMap.GetNode(destinationNodeId)
+                ?? throw new KeyNotFoundException($"Destination node with ID '{destinationNodeId}' was not found.");
+
+            return this.FindOptimalPath(startNode, destinationNode, cancellationToken);
+        }
+
+        #endregion
+
+        #region Async
+
+        /// <summary>
+        /// Asynchronously finds the optimal path between the specified start and destination nodes in the map.
+        /// </summary>
+        /// <param name="startNodeId">The identifier of the start node.</param>
+        /// <param name="destinationNodeId">The identifier of the destination node.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
+        /// <returns>
+        /// A task representing the asynchronous operation, with a <see cref="Path{TId}"/> representing the optimal path from the start node to the destination node.
+        /// Returns <see cref="Path{TId}.Empty"/> if no path is found.
+        /// </returns>
+        /// <exception cref="KeyNotFoundException">
+        /// Thrown if the start or destination node could not be found in the map.
+        /// </exception>
+        public Task<Path<TId>> FindOptimalPathAsync(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
+        {
+            return Task.Run(() => this.FindOptimalPath(startNodeId, destinationNodeId, cancellationToken), cancellationToken);
+        }
+
+        #endregion
+
+        #endregion
+
         #region Protected methods
 
         /// <summary>
@@ -178,57 +229,6 @@ namespace AStarNet
             // If no path was found, return an empty path.
             return Path<TId>.Empty;
         }
-
-        #endregion
-
-        #region Public methods
-
-        #region Sync
-
-        /// <summary>
-        /// Finds the optimal path between the specified start and destination nodes in the map.
-        /// </summary>
-        /// <param name="startNodeId">The identifier of the start node.</param>
-        /// <param name="destinationNodeId">The identifier of the destination node.</param>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
-        /// <returns>A <see cref="Path{TId}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TId}.Empty"/> if no path is found.</returns>
-        /// <exception cref="KeyNotFoundException">Thrown if the start or destination node could not be found in the map.</exception>
-        public Path<TId> FindOptimalPath(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
-        {
-            // Get the start node from the node map.
-            IPathNode<TId> startNode = this.NodeMap.GetNode(startNodeId)
-                ?? throw new KeyNotFoundException($"Start node with ID '{startNodeId}' was not found.");
-
-            // Get the destination node from the node map.
-            IPathNode<TId> destinationNode = this.NodeMap.GetNode(destinationNodeId)
-                ?? throw new KeyNotFoundException($"Destination node with ID '{destinationNodeId}' was not found.");
-
-            return this.FindOptimalPath(startNode, destinationNode, cancellationToken);
-        }
-
-        #endregion
-
-        #region Async
-
-        /// <summary>
-        /// Asynchronously finds the optimal path between the specified start and destination nodes in the map.
-        /// </summary>
-        /// <param name="startNodeId">The identifier of the start node.</param>
-        /// <param name="destinationNodeId">The identifier of the destination node.</param>
-        /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
-        /// <returns>
-        /// A task representing the asynchronous operation, with a <see cref="Path{TId}"/> representing the optimal path from the start node to the destination node.
-        /// Returns <see cref="Path{TId}.Empty"/> if no path is found.
-        /// </returns>
-        /// <exception cref="KeyNotFoundException">
-        /// Thrown if the start or destination node could not be found in the map.
-        /// </exception>
-        public Task<Path<TId>> FindOptimalPathAsync(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
-        {
-            return Task.Run(() => FindOptimalPath(startNodeId, destinationNodeId, cancellationToken), cancellationToken);
-        }
-
-        #endregion
 
         #endregion
     }

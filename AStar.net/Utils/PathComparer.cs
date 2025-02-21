@@ -101,7 +101,7 @@ namespace AStarNet.Utils
         /// <summary>
         /// Compares two <see cref="Path{TId}"/> instances based on their total cost.
         /// </summary>
-        private sealed class PathCostComparer: PathComparer<TId>
+        private sealed class PathCostComparer : PathComparer<TId>
         {
             /// <inheritdoc />
             public override int Compare(Path<TId>? x, Path<TId>? y)
