@@ -57,23 +57,23 @@ namespace ConsoleDemo.PathFinding
         #region INodeMap
 
         /// <inheritdoc/>
-        public IEnumerable<IPathNode<Vector2>> GetChildNodes(IPathNode<Vector2> currentNode)
+        public IEnumerable<IPathNode<Vector2>> GetChildNodes(IPathNode<Vector2> node)
         {
             List<PathNode<Vector2>> childNodes = [];
 
-            // Getting adjacent cells (orthogonal and diagonal) from the matrix
+            // Getting adjacent cells (orthogonal and diagonal) from the matrix.
             for (int dx = -1; dx <= 1; dx++)
             {
                 for (int dy = -1; dy <= 1; dy++)
                 {
-                    // Skip the current cell itself
+                    // Skip the current cell itself.
                     if (dx == 0 && dy == 0)
                         continue;
 
-                    int newX = (int)currentNode.Id.X + dx;
-                    int newY = (int)currentNode.Id.Y + dy;
+                    int newX = (int)node.Id.X + dx;
+                    int newY = (int)node.Id.Y + dy;
 
-                    // Check boundaries
+                    // Check boundaries.
                     if (newX >= 0 && newX < this.Width && newY >= 0 && newY < this.Height)
                     {
                         // It is a wall block, ignore it.
@@ -97,7 +97,7 @@ namespace ConsoleDemo.PathFinding
         /// <inheritdoc/>
         public IPathNode<Vector2>? GetNode(Vector2 id)
         {
-            // Check for out of bounds
+            // Check for out of bounds.
             if (id.X < 0 || id.X >= this.Width)
                 return null;
 
@@ -115,6 +115,35 @@ namespace ConsoleDemo.PathFinding
 
             // No movement, so no cost.
             return new PathNode<Vector2>(item, 0, null);
+        }
+
+        /// <inheritdoc/>
+        public bool HasChildNodes(IPathNode<Vector2> node)
+        {
+            // Getting adjacent cells (orthogonal and diagonal) from the matrix.
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    // Skip the current cell itself.
+                    if (dx == 0 && dy == 0)
+                        continue;
+
+                    int newX = (int)node.Id.X + dx;
+                    int newY = (int)node.Id.Y + dy;
+
+                    // Check boundaries
+                    if (newX >= 0 && newX < this.Width && newY >= 0 && newY < this.Height)
+                    {
+                        // If it is not a wall block, we have at least one valid child, so return true.
+                        if (!this.WallBlocks[newX, newY])
+                            return true;
+                    }
+                }
+            }
+
+            // No valid adjacent cells.
+            return false;
         }
 
         #endregion

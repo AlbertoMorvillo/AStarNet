@@ -174,6 +174,11 @@ namespace AStarNet
         /// <returns>A <see cref="Path{TId}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TId}.Empty"/> if no path is found.</returns>
         protected Path<TId> FindOptimalPath(IPathNode<TId> startNode, IPathNode<TId> destinationNode, CancellationToken cancellationToken)
         {
+            // If the destination node is isolated (i.e., has no child nodes),
+            // return an empty path immediately to avoid fruitless pathfinding attempts.
+            if (!this.NodeMap.HasChildNodes(destinationNode))
+                return Path<TId>.Empty;
+
             // A set to keep track of explored nodes.
             HashSet<TId> closedNodes = [];
 

@@ -20,11 +20,19 @@ namespace AStarNet.Maps
         IPathNode<TId>? GetNode(TId id);
 
         /// <summary>
+        /// Determines whether the specified node has any child nodes.
+        /// </summary>
+        /// <param name="node">The node for which to check for child nodes.</param>
+        /// <returns>
+        /// <see langword="true"/> if the specified node has one or more child nodes; otherwise, <see langword="false"/>.
+        /// </returns>
+        bool HasChildNodes(IPathNode<TId> node);
+
+        /// <summary>
         /// Gets the child nodes of a specific <see cref="IPathNode{TId}"/> in the map.
         /// </summary>
         /// <param name="node">The <see cref="IPathNode{TId}"/> for which to retrieve the child nodes.</param>
         /// <returns>An <see cref="IEnumerable{T}"/> containing the child nodes of the specified <see cref="IPathNode{TId}"/>.</returns>
         IEnumerable<IPathNode<TId>> GetChildNodes(IPathNode<TId> node);
-
     }
 }
