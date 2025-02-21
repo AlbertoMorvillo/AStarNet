@@ -10,16 +10,20 @@ using System.Numerics;
 
 #region Path finding
 
-const int matrixWidth = 40;
-const int matrixHeight = 20;
+const int matrixWidth = 22;
+const int matrixHeight = 22;
 
 MatrixMap matrixMap = new(matrixWidth, matrixHeight);
 PathFinder<Vector2> pathFinder = new(matrixMap, matrixMap);
 Path<Vector2>? path = null;
 
-Vector2? startPoint = null;
-Vector2? destinationPoint = null;
+Vector2? startPoint;
+Vector2? destinationPoint;
 
+FillDefault();
+
+// Finds the optimal path between the start and destination points using the A* algorithm,
+// and displays the result along with the elapsed time.
 void FindPath()
 {
     if (!startPoint.HasValue)
@@ -78,6 +82,7 @@ infoBox.EndWrite();
 
 TextBox messageBox = new() { Left = matrixWidth + 10, Top = 22, Width = 50, Height = 1 };
 
+// Displays a message in the message box.
 void ShowMessage(string message)
 {
     messageBox.BeginWrite();
@@ -85,6 +90,7 @@ void ShowMessage(string message)
     messageBox.EndWrite();
 }
 
+// Prompts the user for a confirmation, displaying a message and waiting for Y/N input.
 bool PromptConfirmation()
 {
     messageBox.BeginWrite();
@@ -130,6 +136,17 @@ gridBox.Draw(startPoint, destinationPoint, path);
 
 #region Input and refresh loop
 
+// Main input and refresh loop:
+// This loop continuously listens for user key input and processes commands as follows:
+// - X or Spacebar: Toggle a wall block at the current cursor position.
+// - S: Set, change, or remove the starting point.
+// - D: Set, change, or remove the destination point.
+// - Enter: Run the pathfinding algorithm.
+// - Backspace: Clear the current path.
+// - Delete: Clear the entire map (start point, destination point, wall blocks, and path).
+// - Escape: Exit the application.
+// After handling each key input, the grid cursor is updated accordingly.
+
 while (true)
 {
     ConsoleKeyInfo keyInfo = Console.ReadKey(true);
@@ -139,7 +156,7 @@ while (true)
         // Space: place or remove a wall block.
         case ConsoleKey.X:
         case ConsoleKey.Spacebar:
-            UpdateWallBlock(gridBox.MarkerX, gridBox.MarkerY);
+            ToggleWallBlock(gridBox.MarkerX, gridBox.MarkerY);
             break;
 
         // S: place, change or remove starting point.
@@ -184,11 +201,43 @@ while (true)
 
 #region Data update
 
-void UpdateWallBlock(int x, int y)
+// Fills the map with a default configuration inspired by the Wikipedia example of the A* search algorithm.
+void FillDefault()
+{
+    // Recreating the Wikipedia example:
+    // https://en.wikipedia.org/wiki/A*_search_algorithm
+    // https://en.wikipedia.org/wiki/A*_search_algorithm#/media/File:Astar_progress_animation.gif
+
+    startPoint = new Vector2(2, 19);
+    destinationPoint = new Vector2(18, 3);
+
+    // Horizontal wall parth
+    for (int i = 5; i <= 15; i++)
+    {
+        for (int j = 6; j <= 8; j++)
+        {
+            matrixMap.WallBlocks[i, j] = true;
+        }
+    }
+
+    // Vertical wall parth
+    for (int i = 13; i <= 15; i++)
+    {
+        for (int j = 8; j <= 13; j++)
+        {
+            matrixMap.WallBlocks[i, j] = true;
+        }
+    }
+}
+
+// Toggles the wall block state at the specified coordinates in the matrix map.
+void ToggleWallBlock(int x, int y)
 {
     matrixMap.WallBlocks[x, y] = !matrixMap.WallBlocks[x, y];
 }
 
+// Updates the specified point (start or destination) based on the provided coordinates.
+// If the point is already set to these coordinate, it is removed.
 void UpdatePoint(ref Vector2? point, int x, int y)
 {
     // Ensure that the cell is not a wall.
@@ -208,6 +257,7 @@ void UpdatePoint(ref Vector2? point, int x, int y)
     }
 }
 
+// Clears all wall blocks, start and destination points, and the current path after confirmation.
 void Clear()
 {
     if (!PromptConfirmation())
