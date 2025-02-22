@@ -84,7 +84,7 @@ namespace ConsoleDemo.PathFinding
                         double cost = dx == 0 || dy == 0 ? 1.0 : Math.Sqrt(2);
 
                         Vector2 childId = this._vectorMatrix[newX, newY];
-                        PathNode<Vector2> child = new(childId, cost, null);
+                        PathNode<Vector2> child = new(childId, cost);
 
                         childNodes.Add(child);
                     }
@@ -114,7 +114,7 @@ namespace ConsoleDemo.PathFinding
             Vector2 item = this._vectorMatrix[intX, intY];
 
             // No movement, so no cost.
-            return new PathNode<Vector2>(item, 0, null);
+            return new PathNode<Vector2>(item, 0);
         }
 
         /// <inheritdoc/>

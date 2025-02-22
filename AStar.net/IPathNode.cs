@@ -24,11 +24,6 @@ namespace AStarNet
         /// </summary>
         double Cost { get; }
 
-        /// <summary>
-        /// Gets the optional content of this node. Can be <see langword="null"/> if no content is associated.
-        /// </summary>
-        object? Content { get; }
-
         #endregion
     }
 }

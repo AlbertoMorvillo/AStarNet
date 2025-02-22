@@ -7,7 +7,7 @@ using System;
 namespace AStarNet
 {
     /// <summary>
-    /// Defines a path node.
+    /// Defines a path node with an identifier and cost.
     /// </summary>
     /// <typeparam name="TId">The type of the node identifier.</typeparam>
     public class PathNode<TId> : IPathNode<TId> where TId : notnull
@@ -20,9 +20,6 @@ namespace AStarNet
         /// <inheritdoc/>
         public double Cost { get; }
 
-        /// <inheritdoc/>
-        public object? Content { get; }
-
         #endregion
 
         #region Constructors
@@ -31,15 +28,13 @@ namespace AStarNet
         /// Initializes a new instance of the <see cref="PathNode{TId}"/> class.
         /// </summary>
         /// <param name="id">The identifier of the node.</param>
-        /// <param name="cost">The cost of this node.</param>
-        /// <param name="content">The optional content of this node.</param>
-        /// <exception cref="ArgumentNullException"><paramref name="content"/> is <see langword="null"/>.</exception>
-        public PathNode(TId id, double cost, object? content = null)
+        /// <param name="cost">The cost associated with this node.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="id"/> is <see langword="null"/>.</exception>
+        public PathNode(TId id, double cost)
         {
             ArgumentNullException.ThrowIfNull(id);
 
             this.Id = id;
-            this.Content = content;
             this.Cost = cost;
         }
 
@@ -50,10 +45,12 @@ namespace AStarNet
         #region Equality
 
         /// <summary>
-        /// Returns a value indicating whether this istance and a specific <see cref="IPathNode{TId}"/> rappresent the same node.
+        /// Determines whether this instance and a specified <see cref="IPathNode{TId}"/> represent the same node.
         /// </summary>
         /// <param name="other">The other <see cref="IPathNode{TId}"/> to compare with the current node.</param>
-        /// <returns>True if this and the other istance rappresent the same node.</returns>
+        /// <returns>
+        /// <see langword="true"/> if this instance and <paramref name="other"/> represent the same node; otherwise, <see langword="false"/>.
+        /// </returns>
         public bool Equals(IPathNode<TId>? other)
         {
             if (other is null)
@@ -117,6 +114,31 @@ namespace AStarNet
         }
 
         #endregion
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Defines a path node with an identifier, a cost and an optional content.
+    /// </summary>
+    /// <typeparam name="TId">The type of the node identifier.</typeparam>
+    /// <typeparam name="TContent">The type of the additional content.</typeparam>
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="PathNode{TId, TContent}"/> class.
+    /// </remarks>
+    /// <param name="id">The identifier of the node.</param>
+    /// <param name="cost">The cost associated with this node.</param>
+    /// <param name="content">The optional content for this node.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="id"/> is <see langword="null"/>.</exception>
+    public class PathNode<TId, TContent>(TId id, double cost, TContent? content = default) : PathNode<TId>(id, cost) where TId : notnull
+    {
+        #region Properties
+
+        /// <summary>
+        /// Gets the optional content associated with this node.
+        /// May be <see langword="default"/> if no content is provided.
+        /// </summary>
+        public TContent? Content { get; } = content;
 
         #endregion
     }
