@@ -6,14 +6,14 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RootNamespace>AStarNet</RootNamespace>
-		<ApplicationIcon>AStar.ico</ApplicationIcon>
+		<ApplicationIcon>AStarIcon.ico</ApplicationIcon>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Authors>Alberto Morvillo</Authors>
 		<PackageTags>A*, path finding</PackageTags>
 		<RepositoryUrl>https://github.com/AlbertoMorvillo/AStarNet</RepositoryUrl>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageIcon>AStar.png</PackageIcon>
+		<PackageIcon>AStarIcon_128.png</PackageIcon>
 		<VersionPrefix>2.0.0</VersionPrefix>
 		<PackageVersion>$(VersionPrefix)</PackageVersion>
 		<AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
@@ -36,8 +36,16 @@
 		<Title>$(AssemblyName)</Title>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Include="AStarIcon.ico" />
+	</ItemGroup>
 	
 	<ItemGroup>
+		<None Update="AStarIcon_128.png">
+		  <Pack>True</Pack>
+		  <PackagePath>\</PackagePath>
+		</None>
 		<None Update="AStar.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>

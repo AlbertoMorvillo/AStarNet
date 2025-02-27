@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Shape" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 283.465 283.465">
+  <!-- Generator: Adobe Illustrator 29.3.1, SVG Export Plug-In . SVG Version: 2.1.0 Build 151)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: none;
+      }
+
+      .st1 {
+        filter: url(#Shadow);
+      }
+
+      .st2 {
+        clip-path: url(#clippath-1);
+      }
+
+      .st3 {
+        fill: url(#Blue_gradient_1);
+      }
+
+      .st4 {
+        fill: url(#Gold_gradient_1);
+      }
+
+      .st5 {
+        filter: url(#Shadow1);
+      }
+
+      .st6 {
+        fill: url(#Gold_gradient_2);
+      }
+
+      .st7 {
+        clip-path: url(#clippath-2);
+      }
+
+      .st8 {
+        filter: url(#Shadow2);
+      }
+
+      .st9 {
+        clip-path: url(#clippath);
+      }
+
+      .st10 {
+        opacity: .5;
+      }
+
+      .st11 {
+        fill: url(#Blue_gradient_2);
+      }
+    </style>
+    <linearGradient id="Blue_gradient_2" data-name="Blue gradient 2" x1="42.561" y1="179.773" x2="283.465" y2="179.773" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2d91b2"/>
+      <stop offset="1" stop-color="#00204c"/>
+    </linearGradient>
+    <clipPath id="clippath">
+      <path class="st0" d="M272.312,89.109h-137.688l26.021-76.082h-37.826l-26.021,76.082H11.152L0,124.899h84.556l-41.996,122.787,30.045,22.751,210.859-145.538-11.152-35.791ZM122.383,124.899h98.075l-128.382,88.611,30.307-88.611Z"/>
+    </clipPath>
+    <filter id="Shadow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+    </filter>
+    <linearGradient id="Gold_gradient_2" data-name="Gold gradient 2" x1="122.819" y1="141.732" x2="240.904" y2="141.732" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e59900"/>
+      <stop offset="1" stop-color="#b25900"/>
+    </linearGradient>
+    <clipPath id="clippath-1">
+      <path class="st0" d="M283.465,124.899l-11.152-35.791-69.289,47.824L160.645,13.027h-37.826L42.561,247.687l30.045,22.751,111.849-77.2,26.404,77.2,30.045-22.751-25.847-75.571,68.408-47.216ZM92.076,213.511l49.656-145.185,30.689,89.729-80.346,55.456Z"/>
+    </clipPath>
+    <filter id="Shadow1" data-name="Shadow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+    </filter>
+    <linearGradient id="Blue_gradient_1" data-name="Blue gradient 1" x1="0" y1="107.004" x2="283.465" y2="107.004" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6bc"/>
+      <stop offset="1" stop-color="#00468c"/>
+    </linearGradient>
+    <clipPath id="clippath-2">
+      <path class="st0" d="M283.465,124.899l-11.152-35.791h-85.645l-26.021-76.082h-37.826l26.021,76.082H11.152L0,124.899h161.082l11.34,33.155L42.561,247.687l30.045,22.751,111.849-77.2,26.404,77.2,30.045-22.751-25.847-75.571,68.408-47.216ZM198.908,124.899h21.55l-17.434,12.033-4.116-12.033Z"/>
+    </clipPath>
+    <filter id="Shadow2" data-name="Shadow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+    </filter>
+    <linearGradient id="Gold_gradient_1" data-name="Gold gradient 1" x1="53.546" y1="82.3" x2="157.145" y2="185.899" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd24c"/>
+      <stop offset="1" stop-color="#e58600"/>
+    </linearGradient>
+  </defs>
+  <polygon class="st11" points="72.606 270.438 42.561 247.687 272.312 89.109 283.465 124.899 72.606 270.438"/>
+  <g class="st10">
+    <g class="st9">
+      <g class="st1">
+        <polygon points="122.819 13.027 210.859 270.438 240.904 247.687 160.645 13.027 122.819 13.027"/>
+        <rect x="-.4" y="-.472" width="11.339" height="11.339"/>
+        <rect x="272.126" y="272.126" width="11.339" height="11.339"/>
+        <rect x="-.4" y="272.126" width="11.339" height="11.339"/>
+        <rect x="272.126" width="11.339" height="11.339"/>
+      </g>
+    </g>
+  </g>
+  <polygon class="st6" points="122.819 13.027 210.859 270.438 240.904 247.687 160.645 13.027 122.819 13.027"/>
+  <g class="st10">
+    <g class="st2">
+      <g class="st5">
+        <polygon points="11.152 89.109 0 124.899 283.465 124.899 272.312 89.109 11.152 89.109"/>
+        <rect x="-.4" y="-.472" width="11.339" height="11.339"/>
+        <rect x="272.126" y="272.126" width="11.339" height="11.339"/>
+        <rect x="-.4" y="272.126" width="11.339" height="11.339"/>
+        <rect x="272.126" width="11.339" height="11.339"/>
+      </g>
+    </g>
+  </g>
+  <polygon class="st3" points="272.312 89.109 11.152 89.109 0 124.899 283.465 124.899 272.312 89.109"/>
+  <g class="st10">
+    <g class="st7">
+      <g class="st8">
+        <polygon points="42.561 247.687 72.606 270.438 160.645 13.027 122.819 13.027 42.561 247.687"/>
+        <rect x="-.4" y="-.472" width="11.339" height="11.339"/>
+        <rect x="272.126" y="272.126" width="11.339" height="11.339"/>
+        <rect x="-.4" y="272.126" width="11.339" height="11.339"/>
+        <rect x="272.126" width="11.339" height="11.339"/>
+      </g>
+    </g>
+  </g>
+  <polygon class="st4" points="72.606 270.438 42.561 247.687 122.819 13.027 160.645 13.027 72.606 270.438"/>
+</svg>

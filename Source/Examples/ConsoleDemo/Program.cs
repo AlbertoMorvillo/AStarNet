@@ -41,7 +41,7 @@ void FindPath()
     Stopwatch stopwatch = new();
 
     stopwatch.Start();
-    path = pathFinder.FindOptimalPath(startPoint.Value, destinationPoint.Value);
+    path = pathFinder.FindPath(startPoint.Value, destinationPoint.Value);
     stopwatch.Stop();
 
     if (path is null || path.IsEmpty)

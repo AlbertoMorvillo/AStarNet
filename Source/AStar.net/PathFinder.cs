@@ -117,14 +117,18 @@ namespace AStarNet
         #region Sync
 
         /// <summary>
-        /// Finds the optimal path between the specified start and destination nodes in the map.
+        /// Finds a path between the specified start and destination nodes in the map.
         /// </summary>
         /// <param name="startNodeId">The identifier of the start node.</param>
         /// <param name="destinationNodeId">The identifier of the destination node.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
-        /// <returns>A <see cref="Path{TId}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TId}.Empty"/> if no path is found.</returns>
+        /// <returns>
+        /// A <see cref="Path{TId}"/> representing the computed path from the start node to the destination node.
+        /// The path consists of nodes generated from the source node map.
+        /// Returns <see cref="Path{TId}.Empty"/> if no path is found.
+        /// </returns>
         /// <exception cref="KeyNotFoundException">Thrown if the start or destination node could not be found in the map.</exception>
-        public Path<TId> FindOptimalPath(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
+        public Path<TId> FindPath(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
         {
             // Get the start node from the node map.
             IPathNode<TId> startNode = this.NodeMap.GetNode(startNodeId)
@@ -134,7 +138,7 @@ namespace AStarNet
             IPathNode<TId> destinationNode = this.NodeMap.GetNode(destinationNodeId)
                 ?? throw new KeyNotFoundException($"Destination node with ID '{destinationNodeId}' was not found.");
 
-            return this.FindOptimalPath(startNode, destinationNode, cancellationToken);
+            return this.FindPath(startNode, destinationNode, cancellationToken);
         }
 
         #endregion
@@ -142,21 +146,20 @@ namespace AStarNet
         #region Async
 
         /// <summary>
-        /// Asynchronously finds the optimal path between the specified start and destination nodes in the map.
+        /// Asynchronously finds a path between the specified start and destination nodes in the map.
         /// </summary>
         /// <param name="startNodeId">The identifier of the start node.</param>
         /// <param name="destinationNodeId">The identifier of the destination node.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
         /// <returns>
-        /// A task representing the asynchronous operation, with a <see cref="Path{TId}"/> representing the optimal path from the start node to the destination node.
-        /// Returns <see cref="Path{TId}.Empty"/> if no path is found.
+        /// A task representing the asynchronous operation. When completed, the task result is a <see cref="Path{TId}"/> representing the computed path from the start node to the destination node.
+        /// The path consists of nodes generated from the source node map.
+        /// If no path is found, the task result is <see cref="Path{TId}.Empty"/>.
         /// </returns>
-        /// <exception cref="KeyNotFoundException">
-        /// Thrown if the start or destination node could not be found in the map.
-        /// </exception>
-        public Task<Path<TId>> FindOptimalPathAsync(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
+        /// <exception cref="KeyNotFoundException">Thrown when the task is awaited, if the start or destination node could not be found in the map.</exception>
+        public Task<Path<TId>> FindPathAsync(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => this.FindOptimalPath(startNodeId, destinationNodeId, cancellationToken), cancellationToken);
+            return Task.Run(() => this.FindPath(startNodeId, destinationNodeId, cancellationToken), cancellationToken);
         }
 
         #endregion
@@ -166,13 +169,13 @@ namespace AStarNet
         #region Protected methods
 
         /// <summary>
-        /// Finds the optimal path between the specified start and destination nodes in the map.
+        /// Finds a path between the specified start and destination nodes in the map.
         /// </summary>
         /// <param name="startNode">The start <see cref="IPathNode{TId}"/>.</param>
         /// <param name="destinationNode">The destination <see cref="IPathNode{TId}"/>.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
-        /// <returns>A <see cref="Path{TId}"/> representing the optimal path from the start node to the destination node. Returns <see cref="Path{TId}.Empty"/> if no path is found.</returns>
-        protected Path<TId> FindOptimalPath(IPathNode<TId> startNode, IPathNode<TId> destinationNode, CancellationToken cancellationToken)
+        /// <returns>A <see cref="Path{TId}"/> representing the computed path from the start node to the destination node. Returns <see cref="Path{TId}.Empty"/> if no path is found.</returns>
+        protected Path<TId> FindPath(IPathNode<TId> startNode, IPathNode<TId> destinationNode, CancellationToken cancellationToken)
         {
             // If the destination node is isolated (i.e., has no child nodes),
             // return an empty path immediately to avoid fruitless pathfinding attempts.
