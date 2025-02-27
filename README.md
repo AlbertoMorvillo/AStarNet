@@ -1,7 +1,5 @@
 <img src="/Assets/Images/Raster/AStarBanner.png" width="460">
 
-<br />
-
 # AStar.net
 
 AStar.net is an open-source library for .NET 8.0 that allows calculating a path using the A* (A-star) algorithm.
