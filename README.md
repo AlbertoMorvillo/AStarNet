@@ -1,4 +1,6 @@
-<img src="/Assets/Images/Vector/AStarBanner.svg" width="400">
+<img src="/Assets/Images/Vectors/AStarBanner.svg" width="400">
+<br />
+<br />
 
 # AStar.net
 
