@@ -12,7 +12,7 @@ namespace ConsoleDemo.PathFinding
     /// <summary>
     /// Represents a two-dimensional matrix navigable using the A* algorithm.
     /// </summary>
-    public class MatrixMap : INodeMap<Vector2>, IHeuristicProvider<Vector2>
+    public class MatrixMap : INodeMap<Vector2, PathNode<Vector2>>, IHeuristicProvider<Vector2, PathNode<Vector2>>
     {
         private readonly Vector2[,] _vectorMatrix;
 
@@ -57,7 +57,7 @@ namespace ConsoleDemo.PathFinding
         #region INodeMap
 
         /// <inheritdoc/>
-        public IEnumerable<IPathNode<Vector2>> GetChildNodes(IPathNode<Vector2> node)
+        public IEnumerable<PathNode<Vector2>> GetChildNodes(PathNode<Vector2> node)
         {
             List<PathNode<Vector2>> childNodes = [];
 
@@ -95,7 +95,7 @@ namespace ConsoleDemo.PathFinding
         }
 
         /// <inheritdoc/>
-        public IPathNode<Vector2>? GetNode(Vector2 id)
+        public PathNode<Vector2>? GetNode(Vector2 id)
         {
             // Check for out of bounds.
             if (id.X < 0 || id.X >= this.Width)
@@ -118,7 +118,7 @@ namespace ConsoleDemo.PathFinding
         }
 
         /// <inheritdoc/>
-        public bool HasChildNodes(IPathNode<Vector2> node)
+        public bool HasChildNodes(PathNode<Vector2> node)
         {
             // Getting adjacent cells (orthogonal and diagonal) from the matrix.
             for (int dx = -1; dx <= 1; dx++)
@@ -155,10 +155,10 @@ namespace ConsoleDemo.PathFinding
         /// allowing for diagonal movement. This realistic estimate helps the A* algorithm efficiently
         /// find the optimal path while reducing unnecessary exploration.
         /// </summary>
-        /// <param name="from">The starting node (<see cref="IPathNode{TId}"/> with TId set to Vector2).</param>
-        /// <param name="to">The destination node (<see cref="IPathNode{TId}"/> with TId set to Vector2).</param>
+        /// <param name="from">The starting node.</param>
+        /// <param name="to">The destination node.</param>
         /// <returns>The estimated cost to reach the destination node from the starting node.</returns>
-        public double GetHeuristic(IPathNode<Vector2> from, IPathNode<Vector2> to)
+        public double GetHeuristic(PathNode<Vector2> from, PathNode<Vector2> to)
         {
             double dx = to.Id.X - from.Id.X;
             double dy = to.Id.Y - from.Id.Y;

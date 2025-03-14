@@ -14,8 +14,8 @@ const int matrixWidth = 22;
 const int matrixHeight = 22;
 
 MatrixMap matrixMap = new(matrixWidth, matrixHeight);
-PathFinder<Vector2> pathFinder = new(matrixMap, matrixMap);
-Path<Vector2>? path = null;
+PathFinder<Vector2, PathNode<Vector2>> pathFinder = new(matrixMap, matrixMap);
+Path<Vector2, PathNode<Vector2>>? path = null;
 
 Vector2? startPoint;
 Vector2? destinationPoint;

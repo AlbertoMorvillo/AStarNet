@@ -9,7 +9,7 @@ namespace AStarNet
     /// <summary>
     /// Defines a path node with an identifier and cost.
     /// </summary>
-    /// <typeparam name="TId">The type of the node identifier.</typeparam>
+    /// <typeparam name="TId">The type of the identifier for the node.</typeparam>
     public class PathNode<TId> : IPathNode<TId> where TId : notnull
     {
         #region Properties
@@ -121,7 +121,7 @@ namespace AStarNet
     /// <summary>
     /// Defines a path node with an identifier, a cost and an optional content.
     /// </summary>
-    /// <typeparam name="TId">The type of the node identifier.</typeparam>
+    /// <typeparam name="TId">The type of the identifier for the node.</typeparam>
     /// <typeparam name="TContent">The type of the additional content.</typeparam>
     /// <remarks>
     /// Initializes a new instance of the <see cref="PathNode{TId, TContent}"/> class.

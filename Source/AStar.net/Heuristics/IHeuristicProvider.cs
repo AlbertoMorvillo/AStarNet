@@ -7,15 +7,16 @@ namespace AStarNet.Heuristics
     /// <summary>
     /// Provides a heuristic function for pathfinding.
     /// </summary>
-    /// <typeparam name="TId">The type of the node identifier.</typeparam>
-    public interface IHeuristicProvider<TId> where TId : notnull
+    /// <typeparam name="TId">The type of the identifier for the nodes.</typeparam>
+    /// <typeparam name="TNode">The type of nodes, implementing <see cref="IPathNode{TId}"/>.</typeparam>
+    public interface IHeuristicProvider<TId, TNode> where TId : notnull where TNode : IPathNode<TId>
     {
         /// <summary>
         /// Computes the heuristic estimate from one node to another.
         /// </summary>
-        /// <param name="from">The start <see cref="IPathNode{TId}"/>.</param>
-        /// <param name="to">The destination <see cref="IPathNode{TId}"/>.</param>
+        /// <param name="from">The start node.</param>
+        /// <param name="to">The destination node.</param>
         /// <returns>The estimated cost from <paramref name="from"/> to <paramref name="to"/>.</returns>
-        double GetHeuristic(IPathNode<TId> from, IPathNode<TId> to);
+        double GetHeuristic(TNode from, TNode to);
     }
 }

@@ -7,32 +7,37 @@ using System.Collections.Generic;
 namespace AStarNet.Maps
 {
     /// <summary>
-    /// Represents a map with nodes navigable using the A* algorithm.
+    /// Represents a navigable map containing nodes that can be used with the A* algorithm.
     /// </summary>
-    /// <typeparam name="TId">The type of the node identifier.</typeparam>
-    public interface INodeMap<TId> where TId : notnull
+    /// <typeparam name="TId">The type of the identifier for the nodes in the map.</typeparam>
+    /// <typeparam name="TNode">The type of nodes in the map, implementing <see cref="IPathNode{TId}"/>.</typeparam>
+    public interface INodeMap<TId, TNode> where TId : notnull where TNode : IPathNode<TId>
     {
         /// <summary>
-        /// Gets the <see cref="IPathNode{TId}"/> in the map that has the specified identifier.
+        /// Retrieves the node associated with the specified identifier.
         /// </summary>
         /// <param name="id">The identifier of the node to retrieve.</param>
-        /// <returns>The <see cref="IPathNode{TId}"/> with the specified identifier, or <see langword="null"/> if no node is found with the given identifier.</returns>
-        IPathNode<TId>? GetNode(TId id);
-
-        /// <summary>
-        /// Determines whether the specified node has any child nodes.
-        /// </summary>
-        /// <param name="node">The node for which to check for child nodes.</param>
         /// <returns>
-        /// <see langword="true"/> if the specified node has one or more child nodes; otherwise, <see langword="false"/>.
+        /// The <typeparamref name="TNode"/> instance with the given identifier, or <see langword="null"/> if no matching node is found.
         /// </returns>
-        bool HasChildNodes(IPathNode<TId> node);
+        TNode? GetNode(TId id);
 
         /// <summary>
-        /// Gets the child nodes of a specific <see cref="IPathNode{TId}"/> in the map.
+        /// Determines whether a given node has any child nodes.
         /// </summary>
-        /// <param name="node">The <see cref="IPathNode{TId}"/> for which to retrieve the child nodes.</param>
-        /// <returns>An <see cref="IEnumerable{T}"/> containing the child nodes of the specified <see cref="IPathNode{TId}"/>.</returns>
-        IEnumerable<IPathNode<TId>> GetChildNodes(IPathNode<TId> node);
+        /// <param name="node">The node to check for child nodes.</param>
+        /// <returns>
+        /// <see langword="true"/> if the node has at least one child node; otherwise, <see langword="false"/>.
+        /// </returns>
+        bool HasChildNodes(TNode node);
+
+        /// <summary>
+        /// Retrieves the child nodes of a specified node in the map.
+        /// </summary>
+        /// <param name="node">The node for which to retrieve child nodes.</param>
+        /// <returns>
+        /// An <see cref="IEnumerable{TNode}"/> containing the child nodes of the specified node.
+        /// </returns>
+        IEnumerable<TNode> GetChildNodes(TNode node);
     }
 }

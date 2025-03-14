@@ -8,10 +8,11 @@ namespace AStarNet.Heuristics
     /// Represents an heuristic provider that always returns zero as the estimated cost between any two nodes.
     /// This effectively disables the heuristic component, making the A* algorithm behave like Dijkstra's algorithm.
     /// </summary>
-    /// <typeparam name="TId">The type of the node identifier.</typeparam>
-    public class ZeroHeuristic<TId> : IHeuristicProvider<TId> where TId : notnull
+    /// <typeparam name="TId">The type of the identifier for the nodes.</typeparam>
+    /// <typeparam name="TNode">The type of nodes, implementing <see cref="IPathNode{TId}"/>.</typeparam>
+    public class ZeroHeuristic<TId, TNode> : IHeuristicProvider<TId, TNode> where TId : notnull where TNode : IPathNode<TId>
     {
         /// <inheritdoc/>
-        public double GetHeuristic(IPathNode<TId> from, IPathNode<TId> to) => 0;
+        public double GetHeuristic(TNode from, TNode to) => 0;
     }
 }

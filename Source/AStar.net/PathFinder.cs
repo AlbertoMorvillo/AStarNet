@@ -15,7 +15,8 @@ namespace AStarNet
     /// Provides functionality to find an optimal path using the A* algorithm.
     /// </summary>
     /// <typeparam name="TId">The type of the identifier for the nodes in the path.</typeparam>
-    public class PathFinder<TId> where TId : notnull
+    /// <typeparam name="TNode">The type of the nodes in the path, implementing <see cref="IPathNode{TId}"/>.</typeparam>
+    public class PathFinder<TId, TNode> where TId : notnull where TNode : IPathNode<TId>
     {
         #region Classes
 
@@ -29,7 +30,7 @@ namespace AStarNet
             /// <summary>
             /// Gets the source node represented by this search node.
             /// </summary>
-            public IPathNode<TId> Source { get; }
+            public TNode Source { get; }
 
             /// <summary>
             /// Gets the parent <see cref="SearchNode"/> from which this node was reached during the search process.
@@ -58,11 +59,11 @@ namespace AStarNet
             /// <summary>
             /// Initializes a new instance of the <see cref="SearchNode"/> class.
             /// </summary>
-            /// <param name="node">The <see cref="IPathNode{TId}"/> representing the base node.</param>
+            /// <param name="node">The node representing the base node.</param>
             /// <param name="parent">The parent <see cref="SearchNode"/> that led to this node, or <see langword="null"/> if this is the starting node.</param>
             /// <param name="heuristicDistance">The heuristic estimated cost from this node to the goal (H).</param>
             /// <exception cref="ArgumentNullException"><paramref name="node"/> is <see langword="null"/>.</exception>
-            public SearchNode(IPathNode<TId> node, SearchNode? parent, double heuristicDistance)
+            public SearchNode(TNode node, SearchNode? parent, double heuristicDistance)
             {
                 ArgumentNullException.ThrowIfNull(node);
 
@@ -81,33 +82,34 @@ namespace AStarNet
         #region Properties
 
         /// <summary>
-        /// Gets the <see cref="INodeMap{TId}"/> where to find the path.
+        /// Gets the node map that provides the nodes used for pathfinding.
         /// </summary>
-        public INodeMap<TId> NodeMap { get; }
+        public INodeMap<TId, TNode> NodeMap { get; }
 
         /// <summary>
         /// Gets the heuristic provider used to estimate the cost between nodes.
+        /// If no provider is specified in the constructor, a default <see cref="ZeroHeuristic{TId, TNode}"/> will be used, making the search behave like Dijkstra's algorithm.
         /// </summary>
-        public IHeuristicProvider<TId> HeuristicProvider { get; }
+        public IHeuristicProvider<TId, TNode> HeuristicProvider { get; }
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PathFinder{TId}"/> class.
+        /// Initializes a new instance of the <see cref="PathFinder{TId, TNode}"/> class.
         /// </summary>
-        /// <param name="nodeMap">The node map where to find a path.</param>
+        /// <param name="nodeMap">The node map that provides the nodes used for pathfinding.</param>
         /// <param name="heuristicProvider">
         /// Optional. The heuristic provider used to estimate the cost between nodes. 
-        /// If <see langword="null"/>, the pathfinding will behave like Dijkstra's algorithm, using a zero heuristic.
+        /// If <see langword="null"/>, the pathfinding will behave like Dijkstra's algorithm, using a default <see cref="ZeroHeuristic{TId, TNode}"/>.
         /// </param>
-        public PathFinder(INodeMap<TId> nodeMap, IHeuristicProvider<TId>? heuristicProvider = null)
+        public PathFinder(INodeMap<TId, TNode> nodeMap, IHeuristicProvider<TId, TNode>? heuristicProvider = null)
         {
             ArgumentNullException.ThrowIfNull(nodeMap);
 
             this.NodeMap = nodeMap;
-            this.HeuristicProvider = heuristicProvider ?? new ZeroHeuristic<TId>();
+            this.HeuristicProvider = heuristicProvider ?? new ZeroHeuristic<TId, TNode>();
         }
 
         #endregion
@@ -123,19 +125,19 @@ namespace AStarNet
         /// <param name="destinationNodeId">The identifier of the destination node.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
         /// <returns>
-        /// A <see cref="Path{TId}"/> representing the computed path from the start node to the destination node.
+        /// A <see cref="Path{TId, TNode}"/> representing the computed path from the start node to the destination node.
         /// The path consists of nodes generated from the source node map.
-        /// Returns <see cref="Path{TId}.Empty"/> if no path is found.
+        /// Returns <see cref="Path{TId, TNode}.Empty"/> if no path is found.
         /// </returns>
         /// <exception cref="KeyNotFoundException">Thrown if the start or destination node could not be found in the map.</exception>
-        public Path<TId> FindPath(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
+        public Path<TId, TNode> FindPath(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
         {
             // Get the start node from the node map.
-            IPathNode<TId> startNode = this.NodeMap.GetNode(startNodeId)
+            TNode startNode = this.NodeMap.GetNode(startNodeId)
                 ?? throw new KeyNotFoundException($"Start node with ID '{startNodeId}' was not found.");
 
             // Get the destination node from the node map.
-            IPathNode<TId> destinationNode = this.NodeMap.GetNode(destinationNodeId)
+            TNode destinationNode = this.NodeMap.GetNode(destinationNodeId)
                 ?? throw new KeyNotFoundException($"Destination node with ID '{destinationNodeId}' was not found.");
 
             return this.FindPath(startNode, destinationNode, cancellationToken);
@@ -152,12 +154,12 @@ namespace AStarNet
         /// <param name="destinationNodeId">The identifier of the destination node.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will complete early.</param>
         /// <returns>
-        /// A task representing the asynchronous operation. When completed, the task result is a <see cref="Path{TId}"/> representing the computed path from the start node to the destination node.
+        /// A task representing the asynchronous operation. When completed, the task result is a <see cref="Path{TId, TNode}"/> representing the computed path from the start node to the destination node.
         /// The path consists of nodes generated from the source node map.
-        /// If no path is found, the task result is <see cref="Path{TId}.Empty"/>.
+        /// If no path is found, the task result is <see cref="Path{TId, TNode}.Empty"/>.
         /// </returns>
         /// <exception cref="KeyNotFoundException">Thrown when the task is awaited, if the start or destination node could not be found in the map.</exception>
-        public Task<Path<TId>> FindPathAsync(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
+        public Task<Path<TId, TNode>> FindPathAsync(TId startNodeId, TId destinationNodeId, CancellationToken cancellationToken = default)
         {
             return Task.Run(() => this.FindPath(startNodeId, destinationNodeId, cancellationToken), cancellationToken);
         }
@@ -171,16 +173,16 @@ namespace AStarNet
         /// <summary>
         /// Finds a path between the specified start and destination nodes in the map.
         /// </summary>
-        /// <param name="startNode">The start <see cref="IPathNode{TId}"/>.</param>
-        /// <param name="destinationNode">The destination <see cref="IPathNode{TId}"/>.</param>
+        /// <param name="startNode">The start node.</param>
+        /// <param name="destinationNode">The destinationnode.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests. If triggered, the search process will be interrupted and the task will return early.</param>
-        /// <returns>A <see cref="Path{TId}"/> representing the computed path from the start node to the destination node. Returns <see cref="Path{TId}.Empty"/> if no path is found.</returns>
-        protected Path<TId> FindPath(IPathNode<TId> startNode, IPathNode<TId> destinationNode, CancellationToken cancellationToken)
+        /// <returns>A <see cref="Path{TId, TNode}"/> representing the computed path from the start node to the destination node. Returns <see cref="Path{TId, TNode}.Empty"/> if no path is found.</returns>
+        protected Path<TId, TNode> FindPath(TNode startNode, TNode destinationNode, CancellationToken cancellationToken)
         {
             // If the destination node is isolated (i.e., has no child nodes),
             // return an empty path immediately to avoid fruitless pathfinding attempts.
             if (!this.NodeMap.HasChildNodes(destinationNode))
-                return Path<TId>.Empty;
+                return Path<TId, TNode>.Empty;
 
             // A set to keep track of explored nodes.
             HashSet<TId> closedNodes = [];
@@ -202,7 +204,7 @@ namespace AStarNet
                 // If we reached the destination, reconstruct and return the path.
                 if (currentNode.Source.Equals(destinationNode))
                 {
-                    List<IPathNode<TId>> pathNodes = [];
+                    List<TNode> pathNodes = [];
 
                     while (currentNode is not null)
                     {
@@ -213,7 +215,7 @@ namespace AStarNet
                     pathNodes.Reverse();
 
                     // Return the path.
-                    return new Path<TId>(Guid.NewGuid(), pathNodes);
+                    return new Path<TId, TNode>(Guid.NewGuid(), pathNodes);
                 }
 
                 // Mark the current node as explored.
@@ -235,7 +237,7 @@ namespace AStarNet
             }
 
             // If no path was found, return an empty path.
-            return Path<TId>.Empty;
+            return Path<TId, TNode>.Empty;
         }
 
         #endregion

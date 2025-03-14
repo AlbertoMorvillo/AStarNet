@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace AStarNet
 {
@@ -13,7 +14,8 @@ namespace AStarNet
     /// Contains the node sequence which defines the path, sorted from start to destination node.
     /// </summary>
     /// <typeparam name="TId">The type of the identifier for the nodes in the path.</typeparam>
-    public class Path<TId> : IComparable, IComparable<Path<TId>>, IEquatable<Path<TId>> where TId : notnull
+    /// <typeparam name="TNode">The type of the nodes in the path, implementing <see cref="IPathNode{TId}"/>.</typeparam>
+    public class Path<TId, TNode> : IComparable, IComparable<Path<TId, TNode>>, IEquatable<Path<TId, TNode>> where TId : notnull where TNode : IPathNode<TId>
     {
         #region Fields
 
@@ -38,7 +40,7 @@ namespace AStarNet
         /// <summary>
         /// Gets the nodes in this path.
         /// </summary>
-        public IReadOnlyList<IPathNode<TId>> Nodes { get; }
+        public IReadOnlyList<TNode> Nodes { get; }
 
         /// <summary>
         /// Gets the cost of this path.
@@ -58,20 +60,20 @@ namespace AStarNet
         /// <summary>
         /// Returns an empty path.
         /// </summary>
-        public static Path<TId> Empty { get; } = new Path<TId>(Guid.Empty);
+        public static Path<TId, TNode> Empty { get; } = new Path<TId, TNode>(Guid.Empty);
 
         #endregion
 
         #region Constructors
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Path{TId}"/> class.
+        /// Initializes a new instance of the <see cref="Path{TId, TNode}"/> class.
         /// </summary>
         /// <param name="id">The unique identifier of the path, represented by a <see cref="Guid"/>.</param>
         public Path(Guid id)
         {
             // Ensures this.Nodes is an ImmutableArray.
-            ImmutableArray<IPathNode<TId>> nodeArray = [];
+            ImmutableArray<TNode> nodeArray = [];
 
             this.Id = id;
             this.Nodes = nodeArray;
@@ -81,17 +83,17 @@ namespace AStarNet
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Path{TId}"/> class.
+        /// Initializes a new instance of the <see cref="Path{TId, TNode}"/> class.
         /// </summary>
-        /// <param name="id">The unique identifier of the path, represented by a <see cref="Guid"/>.</param>
-        /// <param name="nodes">An ordered collection of <see cref="PathNode{TId}"/> representing the nodes in this path, from start to destination.</param>
+        /// <param name="id">A unique identifier for this path, represented as a <see cref="Guid"/>.</param>
+        /// <param name="nodes">An ordered collection of nodes forming the path from the starting point to the destination.</param>
         /// <exception cref="ArgumentNullException"><paramref name="nodes"/> is <see langword="null"/>.</exception>
-        public Path(Guid id, IEnumerable<IPathNode<TId>> nodes)
+        public Path(Guid id, IEnumerable<TNode> nodes)
         {
             ArgumentNullException.ThrowIfNull(nodes);
 
             // Ensures this.Nodes is an ImmutableArray.
-            ImmutableArray<IPathNode<TId>> nodeArray = [.. nodes];
+            ImmutableArray<TNode> nodeArray = [.. nodes];
 
             this.Id = id;
             this.Nodes = nodeArray;
@@ -134,57 +136,57 @@ namespace AStarNet
         #region Concat
 
         /// <summary>
-        /// Creates a new <see cref="Path{TId}"/> representing the concatenation of this path and the specified path.
+        /// Creates a new <see cref="Path{TId, TNode}"/> representing the concatenation of this path and the specified path.
         /// </summary>
         /// <param name="other">The path to append to this path.</param>
-        /// <returns>A new <see cref="Path{TId}"/> representing the combined path.</returns>
+        /// <returns>A new <see cref="Path{TId, TNode}"/> representing the combined path.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
-        public Path<TId> Concat(Path<TId> other)
+        public Path<TId, TNode> Concat(Path<TId, TNode> other)
         {
             ArgumentNullException.ThrowIfNull(other);
 
-            IEnumerable<IPathNode<TId>> combineNodes = this.Nodes.Concat(other.Nodes);
+            IEnumerable<TNode> combineNodes = this.Nodes.Concat(other.Nodes);
 
-            Path<TId> newPath = new(Guid.NewGuid(), combineNodes);
+            Path<TId, TNode> newPath = new(Guid.NewGuid(), combineNodes);
             return newPath;
         }
 
         /// <summary>
-        /// Creates a new <see cref="Path{TId}"/> representing the concatenation of two specified paths.
+        /// Creates a new <see cref="Path{TId, TNode}"/> representing the concatenation of two specified paths.
         /// </summary>
         /// <param name="path1">The first path.</param>
         /// <param name="path2">The second path to append to the first path.</param>
-        /// <returns>A new <see cref="Path{TId}"/> representing the combined path.</returns>
+        /// <returns>A new <see cref="Path{TId, TNode}"/> representing the combined path.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="path1"/> or <paramref name="path2"/> is <see langword="null"/>.</exception>
-        public static Path<TId> Concat(Path<TId> path1, Path<TId> path2)
+        public static Path<TId, TNode> Concat(Path<TId, TNode> path1, Path<TId, TNode> path2)
         {
-            return Path<TId>.Concat((IEnumerable<Path<TId>>)[path1, path2]);
+            return Path<TId, TNode>.Concat((IEnumerable<Path<TId, TNode>>)[path1, path2]);
         }
 
         /// <summary>
-        /// Creates a new <see cref="Path{TId}"/> representing the concatenation of multiple specified paths.
+        /// Creates a new <see cref="Path{TId, TNode}"/> representing the concatenation of multiple specified paths.
         /// </summary>
         /// <param name="paths">An array containing the paths to concatenate.</param>
-        /// <returns>A new <see cref="Path{TId}"/> representing the combined path.</returns>
+        /// <returns>A new <see cref="Path{TId, TNode}"/> representing the combined path.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/>.</exception>
-        public static Path<TId> Concat(params Path<TId>[] paths)
+        public static Path<TId, TNode> Concat(params Path<TId, TNode>[] paths)
         {
-            return Path<TId>.Concat((IEnumerable<Path<TId>>)paths);
+            return Path<TId, TNode>.Concat((IEnumerable<Path<TId, TNode>>)paths);
         }
 
         /// <summary>
-        /// Creates a new <see cref="Path{TId}"/> representing the concatenation of a sequence of paths.
+        /// Creates a new <see cref="Path{TId, TNode}"/> representing the concatenation of a sequence of paths.
         /// </summary>
         /// <param name="paths">The sequence of paths to concatenate.</param>
-        /// <returns>A new <see cref="Path{TId}"/> representing the combined path.</returns>
+        /// <returns>A new <see cref="Path{TId, TNode}"/> representing the combined path.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/>.</exception>
-        public static Path<TId> Concat(IEnumerable<Path<TId>> paths)
+        public static Path<TId, TNode> Concat(IEnumerable<Path<TId, TNode>> paths)
         {
             ArgumentNullException.ThrowIfNull(paths);
 
-            IEnumerable<IPathNode<TId>> combinedNodes = paths.SelectMany(p => p.Nodes);
+            IEnumerable<TNode> combinedNodes = paths.SelectMany(p => p.Nodes);
 
-            Path<TId> newPath = new(Guid.NewGuid(), combinedNodes);
+            Path<TId, TNode> newPath = new(Guid.NewGuid(), combinedNodes);
             return newPath;
         }
 
@@ -195,16 +197,16 @@ namespace AStarNet
         /// <summary>
         /// Compares first the cost then the number of nodes of this path with another one.
         /// </summary>
-        /// <param name="other">The other <see cref="Path{TId}"/> to compare with the current path.</param>
+        /// <param name="other">The other <see cref="Path{TId, TNode}"/> to compare with the current path.</param>
         /// <returns>
         /// <para>Less than zero: This path has the cost less than other path or the cost equal and fewer nodes than other path.</para>
         /// <para>Zero: This path has the cost and the length equal to other node.</para>
         /// <para>Greater than zero: This path has the cost greater than other node or the cost equal and more nodes than the other path.</para>
         /// </returns>
-        /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
-        public int CompareTo(Path<TId>? other)
+        public int CompareTo(Path<TId, TNode>? other)
         {
-            ArgumentNullException.ThrowIfNull(other);
+            if (other is null)
+                return 1;
 
             int costCompare = this.Cost.CompareTo(other.Cost);
 
@@ -224,16 +226,16 @@ namespace AStarNet
             if (obj is null)
                 return 1;
 
-            if (obj is not Path<TId> other)
+            if (obj is not Path<TId, TNode> other)
             {
-                throw new ArgumentException($"Object must be of type {nameof(Path<TId>)}.", nameof(obj));
+                throw new ArgumentException($"Object must be of type {nameof(Path<TId, TNode>)}.", nameof(obj));
             }
 
             return this.CompareTo(other);
         }
 
         /// <summary>
-        /// Compares two <see cref="Path{TId}"/> instances.
+        /// Compares two <see cref="Path{TId, TNode}"/> instances.
         /// </summary>
         /// <param name="x">The first path to compare.</param>
         /// <param name="y">The second path to compare.</param>
@@ -242,7 +244,7 @@ namespace AStarNet
         /// Zero if they are equal.
         /// A positive value if <paramref name="x"/> is greater than <paramref name="y"/>.
         /// </returns>
-        public static int Compare(Path<TId>? x, Path<TId>? y)
+        public static int Compare(Path<TId, TNode>? x, Path<TId, TNode>? y)
         {
             if (x is null)
                 return y is null ? 0 : -1;
@@ -254,11 +256,11 @@ namespace AStarNet
         }
 
         /// <summary>
-        /// Returns a value indicating whether this istance and a specific <see cref="Path{TId}"/> rappresent the same path.
+        /// Returns a value indicating whether this istance and a specific <see cref="Path{TId, TNode}"/> rappresent the same path.
         /// </summary>
-        /// <param name="other">The other <see cref="Path{TId}"/> compare with the current path.</param>
+        /// <param name="other">The other <see cref="Path{TId, TNode}"/> compare with the current path.</param>
         /// <returns>True if this and the other istance rappresent the same path.</returns>
-        public bool Equals(Path<TId>? other)
+        public bool Equals(Path<TId, TNode>? other)
         {
             if (other is null)
                 return false;
@@ -278,21 +280,21 @@ namespace AStarNet
             if (obj is null)
                 return false;
 
-            if (obj is not Path<TId> other)
+            if (obj is not Path<TId, TNode> other)
                 return false;
 
             return this.Equals(other);
         }
 
         /// <summary>
-        /// Determines whether two <see cref="Path{TId}"/> instances are equal.
+        /// Determines whether two <see cref="Path{TId, TNode}"/> instances are equal.
         /// </summary>
         /// <param name="x">The first path to compare.</param>
         /// <param name="y">The second path to compare.</param>
         /// <returns>
         /// <see langword="true"/> if both paths are equal; otherwise, <see langword="false"/>.
         /// </returns>
-        public static bool Equals(Path<TId>? x, Path<TId>? y)
+        public static bool Equals(Path<TId, TNode>? x, Path<TId, TNode>? y)
         {
             if (x is null || y is null)
                 return x is null && y is null;
@@ -307,7 +309,7 @@ namespace AStarNet
         }
 
         /// <inheritdoc/>
-        public static bool operator ==(Path<TId> left, Path<TId>? right)
+        public static bool operator ==(Path<TId, TNode> left, Path<TId, TNode>? right)
         {
             if (left is null)
             {
@@ -318,31 +320,31 @@ namespace AStarNet
         }
 
         /// <inheritdoc/>
-        public static bool operator !=(Path<TId> left, Path<TId>? right)
+        public static bool operator !=(Path<TId, TNode> left, Path<TId, TNode>? right)
         {
             return !(left == right);
         }
 
         /// <inheritdoc/>
-        public static bool operator <(Path<TId>? left, Path<TId>? right)
+        public static bool operator <(Path<TId, TNode>? left, Path<TId, TNode>? right)
         {
             return left is null ? right is not null : left.CompareTo(right) < 0;
         }
 
         /// <inheritdoc/>
-        public static bool operator <=(Path<TId>? left, Path<TId>? right)
+        public static bool operator <=(Path<TId, TNode>? left, Path<TId, TNode>? right)
         {
             return left is null || left.CompareTo(right) <= 0;
         }
 
         /// <inheritdoc/>
-        public static bool operator >(Path<TId>? left, Path<TId>? right)
+        public static bool operator >(Path<TId, TNode>? left, Path<TId, TNode>? right)
         {
             return left is not null && left.CompareTo(right) > 0;
         }
 
         /// <inheritdoc/>
-        public static bool operator >=(Path<TId>? left, Path<TId>? right)
+        public static bool operator >=(Path<TId, TNode>? left, Path<TId, TNode>? right)
         {
             return left is null ? right is null : left.CompareTo(right) >= 0;
         }
