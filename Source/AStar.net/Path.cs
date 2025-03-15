@@ -15,7 +15,9 @@ namespace AStarNet
     /// </summary>
     /// <typeparam name="TId">The type of the identifier for the nodes in the path.</typeparam>
     /// <typeparam name="TNode">The type of the nodes in the path, implementing <see cref="IPathNode{TId}"/>.</typeparam>
-    public class Path<TId, TNode> : IComparable, IComparable<Path<TId, TNode>>, IEquatable<Path<TId, TNode>> where TId : notnull where TNode : IPathNode<TId>
+    public class Path<TId, TNode> : IComparable, IComparable<Path<TId, TNode>>, IEquatable<Path<TId, TNode>>
+        where TId : notnull, IEquatable<TId>
+        where TNode : IPathNode<TId>
     {
         #region Fields
 

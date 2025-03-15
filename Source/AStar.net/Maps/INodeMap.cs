@@ -2,6 +2,7 @@
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
+using System;
 using System.Collections.Generic;
 
 namespace AStarNet.Maps
@@ -11,7 +12,9 @@ namespace AStarNet.Maps
     /// </summary>
     /// <typeparam name="TId">The type of the identifier for the nodes in the map.</typeparam>
     /// <typeparam name="TNode">The type of nodes in the map, implementing <see cref="IPathNode{TId}"/>.</typeparam>
-    public interface INodeMap<TId, TNode> where TId : notnull where TNode : IPathNode<TId>
+    public interface INodeMap<TId, TNode>
+        where TId : notnull, IEquatable<TId>
+        where TNode : IPathNode<TId>
     {
         /// <summary>
         /// Retrieves the node associated with the specified identifier.

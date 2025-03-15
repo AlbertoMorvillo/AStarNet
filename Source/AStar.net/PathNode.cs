@@ -10,7 +10,8 @@ namespace AStarNet
     /// Defines a path node with an identifier and cost.
     /// </summary>
     /// <typeparam name="TId">The type of the identifier for the node.</typeparam>
-    public class PathNode<TId> : IPathNode<TId> where TId : notnull
+    public class PathNode<TId> : IPathNode<TId>
+        where TId : notnull, IEquatable<TId>
     {
         #region Properties
 
@@ -130,7 +131,8 @@ namespace AStarNet
     /// <param name="cost">The cost associated with this node.</param>
     /// <param name="content">The optional content for this node.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="id"/> is <see langword="null"/>.</exception>
-    public class PathNode<TId, TContent>(TId id, double cost, TContent? content = default) : PathNode<TId>(id, cost) where TId : notnull
+    public class PathNode<TId, TContent>(TId id, double cost, TContent? content = default) : PathNode<TId>(id, cost)
+        where TId : notnull, IEquatable<TId>
     {
         #region Properties
 

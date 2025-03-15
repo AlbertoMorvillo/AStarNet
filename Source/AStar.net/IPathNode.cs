@@ -10,7 +10,8 @@ namespace AStarNet
     /// Defines a generic node used within a navigation or pathfinding process.
     /// </summary>
     /// <typeparam name="TId">The type of the node identifier.</typeparam>
-    public interface IPathNode<TId> : IEquatable<IPathNode<TId>> where TId : notnull
+    public interface IPathNode<TId> : IEquatable<IPathNode<TId>>
+        where TId : notnull, IEquatable<TId>
     {
         #region Properties
 
