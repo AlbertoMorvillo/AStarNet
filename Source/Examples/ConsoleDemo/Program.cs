@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 Alberto Morvillo
+﻿// Copyright (c) 2026 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
@@ -14,8 +14,8 @@ const int matrixWidth = 22;
 const int matrixHeight = 22;
 
 MatrixMap matrixMap = new(matrixWidth, matrixHeight);
-PathFinder<Vector2, PathNode<Vector2>> pathFinder = new(matrixMap, matrixMap);
-Path<Vector2, PathNode<Vector2>>? path = null;
+PathFinder<Vector2?> pathFinder = new(matrixMap, matrixMap);
+Path<Vector2?>? path = null;
 
 Vector2? startPoint;
 Vector2? destinationPoint;
@@ -41,7 +41,9 @@ void FindPath()
     Stopwatch stopwatch = new();
 
     stopwatch.Start();
-    path = pathFinder.FindPath(startPoint.Value, destinationPoint.Value);
+    int startNodeId = matrixMap.GetNodeId(startPoint.Value);
+    int destinationNodeId = matrixMap.GetNodeId(destinationPoint.Value);
+    path = pathFinder.FindPath(startNodeId, destinationNodeId);
     stopwatch.Stop();
 
     if (path is null || path.IsEmpty)

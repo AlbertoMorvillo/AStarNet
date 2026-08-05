@@ -1,0 +1,8 @@
+# Normalize repository text files to LF in every working tree.
+* text=auto eol=lf
+
+# Keep binary assets byte-for-byte unchanged.
+*.3dm binary
+*.ai binary
+*.ico binary
+*.png binary

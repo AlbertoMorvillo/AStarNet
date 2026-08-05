@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 Alberto Morvillo
+// Copyright (c) 2026 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
@@ -7,167 +7,184 @@ using AStarNet.Heuristics;
 using AStarNet.Maps;
 using System.Numerics;
 
-namespace ConsoleDemo.PathFinding
+namespace ConsoleDemo.PathFinding;
+
+/// <summary>
+/// Represents a two-dimensional matrix navigable using the A* algorithm.
+/// </summary>
+public class MatrixMap : INodeMap<Vector2?>, IHeuristicProvider<Vector2?>
 {
+    #region Fields
+
+    private readonly Vector2[,] _vectorMatrix;
+
+    #endregion
+
+    #region Constructors
+
     /// <summary>
-    /// Represents a two-dimensional matrix navigable using the A* algorithm.
+    /// Initializes a new instance of the <see cref="MatrixMap"/> class.
     /// </summary>
-    public class MatrixMap : INodeMap<Vector2, PathNode<Vector2>>, IHeuristicProvider<Vector2, PathNode<Vector2>>
+    /// <param name="width">The width of the matrix.</param>
+    /// <param name="height">The height of the matrix.</param>
+    /// <exception cref="ArgumentOutOfRangeException">A dimension is not positive or the matrix is too large.</exception>
+    public MatrixMap(int width, int height)
     {
-        private readonly Vector2[,] _vectorMatrix;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
 
-        /// <summary>
-        /// Gets the width of the matrix.
-        /// </summary>
-        public int Width { get; }
+        _ = checked(width * height);
 
-        /// <summary>
-        /// Gets the height of the matrix.
-        /// </summary>
-        public int Height { get; }
+        this.Width = width;
+        this.Height = height;
+        this._vectorMatrix = new Vector2[width, height];
+        this.WallBlocks = new bool[width, height];
 
-        /// <summary>
-        /// Gets a two-dimensional array indicating which cells in the matrix are wall blocks.
-        /// A value of true indicates that the cell is blocked.
-        /// </summary>
-        public bool[,] WallBlocks { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MatrixMap"/> class.
-        /// </summary>
-        /// <param name="width">The width of the matrix.</param>
-        /// <param name="height">The height of the matrix.</param>
-        public MatrixMap(int width, int height)
+        for (int x = 0; x < width; x++)
         {
-            this._vectorMatrix = new Vector2[width, height];
-
-            for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
             {
-                for (int y = 0; y < height; y++)
-                {
-                    this._vectorMatrix[x, y] = new Vector2(x, y);
-                }
+                this._vectorMatrix[x, y] = new Vector2(x, y);
             }
-
-            this.Width = width;
-            this.Height = height;
-            this.WallBlocks = new bool[width, height];
         }
-
-        #region INodeMap
-
-        /// <inheritdoc/>
-        public IEnumerable<PathNode<Vector2>> GetChildNodes(PathNode<Vector2> node)
-        {
-            List<PathNode<Vector2>> childNodes = [];
-
-            // Getting adjacent cells (orthogonal and diagonal) from the matrix.
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    // Skip the current cell itself.
-                    if (dx == 0 && dy == 0)
-                        continue;
-
-                    int newX = (int)node.Id.X + dx;
-                    int newY = (int)node.Id.Y + dy;
-
-                    // Check boundaries.
-                    if (newX >= 0 && newX < this.Width && newY >= 0 && newY < this.Height)
-                    {
-                        // It is a wall block, ignore it.
-                        if (this.WallBlocks[newX, newY])
-                            continue;
-
-                        // Determine the movement cost: 1 for orthogonal, √2 for diagonal.
-                        double cost = dx == 0 || dy == 0 ? 1.0 : Math.Sqrt(2);
-
-                        Vector2 childId = this._vectorMatrix[newX, newY];
-                        PathNode<Vector2> child = new(childId, cost);
-
-                        childNodes.Add(child);
-                    }
-                }
-            }
-
-            return childNodes;
-        }
-
-        /// <inheritdoc/>
-        public PathNode<Vector2>? GetNode(Vector2 id)
-        {
-            // Check for out of bounds.
-            if (id.X < 0 || id.X >= this.Width)
-                return null;
-
-            if (id.Y < 0 || id.Y >= this.Height)
-                return null;
-
-            int intX = (int)id.X;
-            int intY = (int)id.Y;
-
-            // It is a wall block, ignore it.
-            if (this.WallBlocks[intX, intY])
-                return null;
-
-            Vector2 item = this._vectorMatrix[intX, intY];
-
-            // No movement, so no cost.
-            return new PathNode<Vector2>(item, 0);
-        }
-
-        /// <inheritdoc/>
-        public bool HasChildNodes(PathNode<Vector2> node)
-        {
-            // Getting adjacent cells (orthogonal and diagonal) from the matrix.
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    // Skip the current cell itself.
-                    if (dx == 0 && dy == 0)
-                        continue;
-
-                    int newX = (int)node.Id.X + dx;
-                    int newY = (int)node.Id.Y + dy;
-
-                    // Check boundaries
-                    if (newX >= 0 && newX < this.Width && newY >= 0 && newY < this.Height)
-                    {
-                        // If it is not a wall block, we have at least one valid child, so return true.
-                        if (!this.WallBlocks[newX, newY])
-                            return true;
-                    }
-                }
-            }
-
-            // No valid adjacent cells.
-            return false;
-        }
-
-        #endregion
-
-        #region IHeuristicProvider
-
-        /// <summary>
-        /// Computes the heuristic estimate (Euclidean distance) between the start and destination nodes,
-        /// allowing for diagonal movement. This realistic estimate helps the A* algorithm efficiently
-        /// find the optimal path while reducing unnecessary exploration.
-        /// </summary>
-        /// <param name="from">The starting node.</param>
-        /// <param name="to">The destination node.</param>
-        /// <returns>The estimated cost to reach the destination node from the starting node.</returns>
-        public double GetHeuristic(PathNode<Vector2> from, PathNode<Vector2> to)
-        {
-            double dx = to.Id.X - from.Id.X;
-            double dy = to.Id.Y - from.Id.Y;
-
-            // Return the Euclidean distance.
-            double euclideanDistance = Math.Sqrt((dx * dx) + (dy * dy));
-            return euclideanDistance;
-        }
-
-        #endregion
     }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Gets the width of the matrix.
+    /// </summary>
+    public int Width { get; }
+
+    /// <summary>
+    /// Gets the height of the matrix.
+    /// </summary>
+    public int Height { get; }
+
+    /// <summary>
+    /// Gets the matrix that indicates which cells are blocked.
+    /// </summary>
+    public bool[,] WallBlocks { get; }
+
+    #endregion
+
+    #region Public methods
+
+    /// <inheritdoc/>
+    public IEnumerable<PathConnection<Vector2?>> GetConnections(PathNode<Vector2?> node)
+    {
+        Vector2 coordinates = MatrixMap.GetCoordinates(node);
+        List<PathConnection<Vector2?>> connections = [];
+
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0)
+                    continue;
+
+                int newX = (int)coordinates.X + dx;
+                int newY = (int)coordinates.Y + dy;
+
+                if (!this.IsInsideMap(newX, newY) || this.WallBlocks[newX, newY])
+                    continue;
+
+                double cost = dx == 0 || dy == 0 ? 1.0 : Math.Sqrt(2);
+                Vector2 childContent = this._vectorMatrix[newX, newY];
+                int childId = this.GetNodeId(newX, newY);
+
+                PathNode<Vector2?> childNode = new(childId, childContent);
+                connections.Add(new PathConnection<Vector2?>(childNode, cost));
+            }
+        }
+
+        return connections;
+    }
+
+    /// <inheritdoc/>
+    public PathNode<Vector2?>? GetNode(int id)
+    {
+        if (id < 0 || id >= this.Width * this.Height)
+            return null;
+
+        int x = id % this.Width;
+        int y = id / this.Width;
+
+        if (this.WallBlocks[x, y])
+            return null;
+
+        return new PathNode<Vector2?>(id, this._vectorMatrix[x, y]);
+    }
+
+    /// <inheritdoc/>
+    public double GetHeuristic(PathNode<Vector2?> from, PathNode<Vector2?> to)
+    {
+        Vector2 fromCoordinates = MatrixMap.GetCoordinates(from);
+        Vector2 toCoordinates = MatrixMap.GetCoordinates(to);
+        double dx = toCoordinates.X - fromCoordinates.X;
+        double dy = toCoordinates.Y - fromCoordinates.Y;
+
+        return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    /// <summary>
+    /// Gets the node identifier associated with the specified coordinates.
+    /// </summary>
+    /// <param name="coordinates">The matrix coordinates.</param>
+    /// <returns>The corresponding node identifier.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="coordinates"/> is outside the matrix.</exception>
+    public int GetNodeId(Vector2 coordinates)
+    {
+        int x = checked((int)coordinates.X);
+        int y = checked((int)coordinates.Y);
+
+        if (!this.IsInsideMap(x, y) || coordinates.X != x || coordinates.Y != y)
+            throw new ArgumentOutOfRangeException(nameof(coordinates), "Coordinates are outside the matrix or are not integral.");
+
+        return this.GetNodeId(x, y);
+    }
+
+    #endregion
+
+    #region Private methods
+
+    /// <summary>
+    /// Gets the coordinates stored in a node.
+    /// </summary>
+    /// <param name="node">The node whose content is requested.</param>
+    /// <returns>The node coordinates.</returns>
+    /// <exception cref="ArgumentException">The node does not contain coordinates.</exception>
+    private static Vector2 GetCoordinates(PathNode<Vector2?> node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        return node.Content
+            ?? throw new ArgumentException("The node does not contain matrix coordinates.", nameof(node));
+    }
+
+    /// <summary>
+    /// Gets the node identifier associated with integral coordinates.
+    /// </summary>
+    /// <param name="x">The horizontal coordinate.</param>
+    /// <param name="y">The vertical coordinate.</param>
+    /// <returns>The corresponding node identifier.</returns>
+    private int GetNodeId(int x, int y)
+    {
+        return (y * this.Width) + x;
+    }
+
+    /// <summary>
+    /// Determines whether the specified coordinates are inside the matrix.
+    /// </summary>
+    /// <param name="x">The horizontal coordinate.</param>
+    /// <param name="y">The vertical coordinate.</param>
+    /// <returns><see langword="true"/> when the coordinates are valid; otherwise, <see langword="false"/>.</returns>
+    private bool IsInsideMap(int x, int y)
+    {
+        return x >= 0 && x < this.Width && y >= 0 && y < this.Height;
+    }
+
+    #endregion
 }
