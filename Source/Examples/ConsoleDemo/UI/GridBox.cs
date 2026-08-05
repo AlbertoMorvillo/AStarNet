@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 Alberto Morvillo
+﻿// Copyright (c) 2026 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
@@ -105,7 +105,7 @@ namespace ConsoleDemo.UI
         /// <param name="startPoint">The starting point coordinates (if any) to be highlighted.</param>
         /// <param name="destinationPoint">The destination point coordinates (if any) to be highlighted.</param>
         /// <param name="path">The path to be drawn on the grid, if provided.</param>
-        public void Draw(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2, PathNode<Vector2>>? path)
+        public void Draw(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2?>? path)
         {
             Console.CursorVisible = false;
 
@@ -125,7 +125,7 @@ namespace ConsoleDemo.UI
         /// <param name="startPoint">The starting point to highlight, if provided.</param>
         /// <param name="destinationPoint">The destination point to highlight, if provided.</param>
         /// <param name="path">The path to be drawn on the grid, if provided.</param>
-        public void UpdateContent(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2, PathNode<Vector2>>? path)
+        public void UpdateContent(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2?>? path)
         {
             Encoding previousEncode = Console.OutputEncoding;
             Console.OutputEncoding = Encoding.Unicode;
@@ -142,7 +142,7 @@ namespace ConsoleDemo.UI
         /// <param name="startPoint">The starting point coordinates (if any) to be highlighted.</param>
         /// <param name="destinationPoint">The destination point coordinates (if any) to be highlighted.</param>
         /// <param name="path">The path to be drawn on the grid, if provided.</param>
-        public void UpdateCursor(ConsoleKey pressedKey, Vector2? startPoint, Vector2? destinationPoint, Path<Vector2, PathNode<Vector2>>? path)
+        public void UpdateCursor(ConsoleKey pressedKey, Vector2? startPoint, Vector2? destinationPoint, Path<Vector2?>? path)
         {
             int newMarkerX = this.MarkerX;
             int newMarkerY = this.MarkerY;
@@ -220,7 +220,7 @@ namespace ConsoleDemo.UI
         /// <param name="startPoint">The starting point to highlight, if provided.</param>
         /// <param name="destinationPoint">The destination point to highlight, if provided.</param>
         /// <param name="path">The path to be drawn on the grid, if provided.</param>
-        public void DrawContent(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2, PathNode<Vector2>>? path)
+        public void DrawContent(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2?>? path)
         {
             for (int i = 0; i < this.MatrixMap.Width; i++)
             {
@@ -241,7 +241,7 @@ namespace ConsoleDemo.UI
         /// <param name="startPoint">The starting point to highlight, if provided.</param>
         /// <param name="destinationPoint">The destination point to highlight, if provided.</param>
         /// <param name="path">The path to be drawn on the grid, if provided.</param>
-        private void DrawMarker(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2, PathNode<Vector2>>? path)
+        private void DrawMarker(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2?>? path)
         {
             Console.SetCursorPosition(this.Left + this.MarkerX + 1, this.Top + this.MarkerY + 1);
 
@@ -256,7 +256,7 @@ namespace ConsoleDemo.UI
         /// <param name="startPoint">The starting point to highlight, if provided.</param>
         /// <param name="destinationPoint">The destination point to highlight, if provided.</param>
         /// <param name="path">The path to be drawn on the grid, if provided.</param>
-        private void ClearMarker(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2, PathNode<Vector2>>? path)
+        private void ClearMarker(Vector2? startPoint, Vector2? destinationPoint, Path<Vector2?>? path)
         {
             Console.SetCursorPosition(this.Left + this.MarkerX + 1, this.Top + this.MarkerY + 1);
 
@@ -276,7 +276,7 @@ namespace ConsoleDemo.UI
         /// <param name="destinationPoint">The destination point to highlight, if provided.</param>
         /// <param name="path">The path containing nodes to highlight, if provided.</param>
         /// <param name="highlight">A flag indicating whether to draw the cell in highlighted mode.</param>
-        private void DrawSymbol(int x, int y, Vector2? startPoint, Vector2? destinationPoint, Path<Vector2, PathNode<Vector2>>? path, bool highlight)
+        private void DrawSymbol(int x, int y, Vector2? startPoint, Vector2? destinationPoint, Path<Vector2?>? path, bool highlight)
         {
             ConsoleColor previousBackground = Console.BackgroundColor;
             ConsoleColor previousForeground = Console.ForegroundColor;
@@ -304,13 +304,13 @@ namespace ConsoleDemo.UI
             }
             else if (path is not null && !path.IsEmpty)
             {
-                if (currentPoint.Equals(path.Nodes[0].Id))
+                if (currentPoint.Equals(path[0].Content))
                 {
                     this.ChangeConsoleColor(this.PathPointColor, highlight);
                     Console.Write("S");
                     isEmptyPoint = false;
                 }
-                else if (currentPoint.Equals(path.Nodes[^1].Id))
+                else if (currentPoint.Equals(path[^1].Content))
                 {
                     this.ChangeConsoleColor(this.PathPointColor, highlight);
                     Console.Write("D");
@@ -318,9 +318,9 @@ namespace ConsoleDemo.UI
                 }
                 else
                 {
-                    foreach (IPathNode<Vector2> node in path.Nodes)
+                    foreach (PathStep<Vector2?> step in path.Steps)
                     {
-                        if (currentPoint.Equals(node.Id))
+                        if (currentPoint.Equals(step.Node.Content))
                         {
                             this.ChangeConsoleColor(this.PathPointColor, highlight);
                             Console.Write("○");

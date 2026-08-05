@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<RootNamespace>AStarNet</RootNamespace>
@@ -21,14 +21,17 @@
 		<PackageReleaseNotes>Version 2.0.0 – IMPORTANT NOTICE
 		This version introduces significant breaking changes that may require updates to your existing code.
 
-		- Migrated from .NET Standard 2.0 to .NET 8.0
+		- Migrated from .NET Standard 2.0 to .NET 10.0
 		- Added new convenience methods for working with paths and nodes
 		- Replaced internal thread management with Task-based parallelism and Cancellation Tokens
 		- Improved path and node data structure for clarity and robustness
 		- Improved the handling of start and destination nodes, decoupling their selection from the node map structure
+		- Replaced generic node identifiers with integer identifiers
+		- Removed IPathNode and standardized the public API on PathNode&lt;TContent&gt;
+		- Moved traversal costs from nodes to directed path connections
 		- Path node collections are now immutable
 		- Removed the logic for finding all paths, focusing on the best path (following A* logic).
-		- Revised node content handling: content is now mandatory and immutable once assigned to a node.
+		- Revised node content handling: content is optional and immutable once assigned to a node.
 		- Removed obsolete types and members
 		- Performance optimizations</PackageReleaseNotes>
 		<Description>.Net implementation of the A* path finding algorithm</Description>

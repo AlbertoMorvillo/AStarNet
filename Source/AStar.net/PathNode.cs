@@ -1,147 +1,101 @@
-﻿// Copyright (c) 2025 Alberto Morvillo
+// Copyright (c) 2026 Alberto Morvillo
 // Distributed under MIT license
 // https://opensource.org/licenses/MIT
 
 using System;
 
-namespace AStarNet
+namespace AStarNet;
+
+/// <summary>
+/// Defines a path node with an integer identifier and optional content.
+/// </summary>
+/// <typeparam name="TContent">The type of the optional content associated with the node.</typeparam>
+public class PathNode<TContent> : IEquatable<PathNode<TContent>>
 {
-    /// <summary>
-    /// Defines a path node with an identifier and cost.
-    /// </summary>
-    /// <typeparam name="TId">The type of the identifier for the node.</typeparam>
-    public class PathNode<TId> : IPathNode<TId>
-        where TId : notnull, IEquatable<TId>
-    {
-        #region Properties
-
-        /// <inheritdoc/>
-        public TId Id { get; }
-
-        /// <inheritdoc/>
-        public double Cost { get; }
-
-        #endregion
-
-        #region Constructors
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PathNode{TId}"/> class.
-        /// </summary>
-        /// <param name="id">The identifier of the node.</param>
-        /// <param name="cost">The cost associated with this node.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="id"/> is <see langword="null"/>.</exception>
-        public PathNode(TId id, double cost)
-        {
-            ArgumentNullException.ThrowIfNull(id);
-
-            this.Id = id;
-            this.Cost = cost;
-        }
-
-        #endregion
-
-        #region Public methods
-
-        #region Equality
-
-        /// <summary>
-        /// Determines whether this instance and a specified <see cref="IPathNode{TId}"/> represent the same node.
-        /// </summary>
-        /// <param name="other">The other <see cref="IPathNode{TId}"/> to compare with the current node.</param>
-        /// <returns>
-        /// <see langword="true"/> if this instance and <paramref name="other"/> represent the same node; otherwise, <see langword="false"/>.
-        /// </returns>
-        public bool Equals(IPathNode<TId>? other)
-        {
-            if (other is null)
-                return false;
-
-            return this.Id.Equals(other.Id);
-        }
-
-        /// <inheritdoc/>
-        public override bool Equals(object? obj)
-        {
-            if (ReferenceEquals(this, obj))
-                return true;
-
-            if (obj is null)
-                return false;
-
-            if (obj is not PathNode<TId> other)
-                return false;
-
-            return this.Equals(other);
-        }
-
-        /// <summary>
-        /// Determines whether two <see cref="PathNode{TId}"/> instances are equal.
-        /// </summary>
-        /// <param name="x">The first node to compare.</param>
-        /// <param name="y">The second node to compare.</param>
-        /// <returns>
-        /// <see langword="true"/> if both nodes are equal; otherwise, <see langword="false"/>.
-        /// </returns>
-        public static bool Equals(PathNode<TId>? x, PathNode<TId>? y)
-        {
-            if (x is null || y is null)
-                return x is null && y is null;
-
-            return x.Equals(y);
-        }
-
-        /// <inheritdoc/>
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(this.Id);
-        }
-
-        /// <inheritdoc/>
-        public static bool operator ==(PathNode<TId> left, PathNode<TId>? right)
-        {
-            if (left is null)
-            {
-                return right is null;
-            }
-
-            return left.Equals(right);
-        }
-
-        /// <inheritdoc/>
-        public static bool operator !=(PathNode<TId> left, PathNode<TId>? right)
-        {
-            return !(left == right);
-        }
-
-        #endregion
-
-        #endregion
-    }
+    #region Constructors
 
     /// <summary>
-    /// Defines a path node with an identifier, a cost and an optional content.
+    /// Initializes a new instance of the <see cref="PathNode{TContent}"/> class.
     /// </summary>
-    /// <typeparam name="TId">The type of the identifier for the node.</typeparam>
-    /// <typeparam name="TContent">The type of the additional content.</typeparam>
-    /// <remarks>
-    /// Initializes a new instance of the <see cref="PathNode{TId, TContent}"/> class.
-    /// </remarks>
     /// <param name="id">The identifier of the node.</param>
-    /// <param name="cost">The cost associated with this node.</param>
-    /// <param name="content">The optional content for this node.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="id"/> is <see langword="null"/>.</exception>
-    public class PathNode<TId, TContent>(TId id, double cost, TContent? content = default) : PathNode<TId>(id, cost)
-        where TId : notnull, IEquatable<TId>
+    /// <param name="content">The optional content associated with the node.</param>
+    public PathNode(int id, TContent? content = default)
     {
-        #region Properties
-
-        /// <summary>
-        /// Gets the optional content associated with this node.
-        /// May be <see langword="default"/> if no content is provided.
-        /// </summary>
-        public TContent? Content { get; } = content;
-
-        #endregion
+        this.Id = id;
+        this.Content = content;
     }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Gets the identifier of the node.
+    /// </summary>
+    public int Id { get; }
+
+    /// <summary>
+    /// Gets the optional content associated with the node.
+    /// </summary>
+    public TContent? Content { get; }
+
+    #endregion
+
+    #region Public methods
+
+    /// <summary>
+    /// Determines whether this instance and another node have the same identifier.
+    /// </summary>
+    /// <param name="other">The other node to compare with this instance.</param>
+    /// <returns><see langword="true"/> when both nodes have the same identifier; otherwise, <see langword="false"/>.</returns>
+    public bool Equals(PathNode<TContent>? other)
+    {
+        if (other is null)
+            return false;
+
+        return this.Id == other.Id;
+    }
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(this, obj))
+            return true;
+
+        return obj is PathNode<TContent> other && this.Equals(other);
+    }
+
+    /// <summary>
+    /// Determines whether two nodes have the same identifier.
+    /// </summary>
+    /// <param name="left">The first node to compare.</param>
+    /// <param name="right">The second node to compare.</param>
+    /// <returns><see langword="true"/> when both nodes are equal; otherwise, <see langword="false"/>.</returns>
+    public static bool Equals(PathNode<TContent>? left, PathNode<TContent>? right)
+    {
+        if (left is null || right is null)
+            return left is null && right is null;
+
+        return left.Equals(right);
+    }
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        return this.Id.GetHashCode();
+    }
+
+    /// <inheritdoc/>
+    public static bool operator ==(PathNode<TContent>? left, PathNode<TContent>? right)
+    {
+        return PathNode<TContent>.Equals(left, right);
+    }
+
+    /// <inheritdoc/>
+    public static bool operator !=(PathNode<TContent>? left, PathNode<TContent>? right)
+    {
+        return !(left == right);
+    }
+
+    #endregion
 }
