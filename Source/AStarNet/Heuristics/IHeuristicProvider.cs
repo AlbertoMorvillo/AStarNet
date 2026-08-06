@@ -10,20 +10,17 @@ namespace AStarNet.Heuristics;
 /// exceed the actual minimum cost of reaching the destination. Admissibility depends on the graph and its traversal
 /// costs and therefore cannot be validated by the pathfinder.
 /// </remarks>
-/// <typeparam name="TContent">The type of the optional node content.</typeparam>
-public interface IHeuristicProvider<TContent>
+public interface IHeuristicProvider
 {
     /// <summary>
     /// Computes the heuristic estimate from one node to another.
     /// </summary>
-    /// <param name="from">The start node.</param>
-    /// <param name="to">The destination node.</param>
-    /// <returns>
-    /// The finite, non-negative estimated cost from <paramref name="from"/> to <paramref name="to"/>.
-    /// </returns>
+    /// <param name="fromNodeId">The start-node identifier.</param>
+    /// <param name="toNodeId">The destination-node identifier.</param>
+    /// <returns>The finite, non-negative estimated cost between the nodes.</returns>
     /// <remarks>
     /// Returning a negative value, infinity, or <see cref="double.NaN"/> causes the path search to throw an
     /// <see cref="InvalidOperationException"/>.
     /// </remarks>
-    double GetHeuristic(PathNode<TContent> from, PathNode<TContent> to);
+    double GetHeuristic(int fromNodeId, int toNodeId);
 }

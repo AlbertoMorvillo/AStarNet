@@ -6,9 +6,10 @@ namespace AStarNet.ConsoleDemo.PathFinding;
 /// <summary>
 /// Provides a navigable two-dimensional grid and its matching A* heuristic.
 /// </summary>
-internal sealed class MatrixMap : INodeMap<GridPosition>, IHeuristicProvider<GridPosition>
+internal sealed class MatrixMap : INodeMap, IHeuristicProvider
 {
     private readonly bool[,] _walls;
+    private int _wallCount;
 
     /// <summary>
     /// Initializes a grid with the specified dimensions.
@@ -36,46 +37,36 @@ internal sealed class MatrixMap : INodeMap<GridPosition>, IHeuristicProvider<Gri
     /// </summary>
     public int Height { get; }
 
+    /// <summary>
+    /// Gets a value that changes whenever the wall layout changes.
+    /// </summary>
+    public long Version { get; private set; }
+
     /// <inheritdoc/>
-    public PathNode<GridPosition>? GetNode(int id)
+    public bool ContainsNode(int nodeId)
     {
-        if (id < 0 || id >= this.Width * this.Height)
+        if (nodeId < 0 || nodeId >= this.Width * this.Height)
+            return false;
+
+        return !this.IsWall(this.GetPosition(nodeId));
+    }
+
+    /// <inheritdoc/>
+    public IEnumerable<PathConnection>? GetConnections(int nodeId)
+    {
+        if (!this.ContainsNode(nodeId))
             return null;
 
-        GridPosition position = this.GetPosition(id);
-        return this.IsWall(position) ? null : new PathNode<GridPosition>(id, position);
+        return this.EnumerateConnections(nodeId);
     }
 
     /// <inheritdoc/>
-    public IEnumerable<PathConnection<GridPosition>> GetConnections(PathNode<GridPosition> node)
+    public double GetHeuristic(int fromNodeId, int toNodeId)
     {
-        GridPosition origin = node.Content;
-
-        for (int deltaX = -1; deltaX <= 1; deltaX++)
-        {
-            for (int deltaY = -1; deltaY <= 1; deltaY++)
-            {
-                if (deltaX == 0 && deltaY == 0)
-                    continue;
-
-                GridPosition destination = new(origin.X + deltaX, origin.Y + deltaY);
-                if (!this.IsInside(destination) || this.IsWall(destination))
-                    continue;
-
-                bool isDiagonal = deltaX != 0 && deltaY != 0;
-                double cost = isDiagonal ? Math.Sqrt(2) : 1;
-                int destinationId = this.GetNodeId(destination);
-                PathNode<GridPosition> destinationNode = new(destinationId, destination);
-                yield return new PathConnection<GridPosition>(destinationNode, cost);
-            }
-        }
-    }
-
-    /// <inheritdoc/>
-    public double GetHeuristic(PathNode<GridPosition> from, PathNode<GridPosition> to)
-    {
-        int distanceX = Math.Abs(to.Content.X - from.Content.X);
-        int distanceY = Math.Abs(to.Content.Y - from.Content.Y);
+        GridPosition from = this.GetPosition(fromNodeId);
+        GridPosition to = this.GetPosition(toNodeId);
+        int distanceX = Math.Abs(to.X - from.X);
+        int distanceY = Math.Abs(to.Y - from.Y);
         int diagonalSteps = Math.Min(distanceX, distanceY);
         int straightSteps = Math.Max(distanceX, distanceY) - diagonalSteps;
 
@@ -115,7 +106,13 @@ internal sealed class MatrixMap : INodeMap<GridPosition>, IHeuristicProvider<Gri
         if (!this.IsInside(position))
             throw new ArgumentOutOfRangeException(nameof(position), "The position is outside the grid.");
 
+        bool currentValue = this._walls[position.X, position.Y];
+        if (currentValue == isWall)
+            return;
+
         this._walls[position.X, position.Y] = isWall;
+        this._wallCount += isWall ? 1 : -1;
+        this.Version++;
     }
 
     /// <summary>
@@ -123,7 +120,40 @@ internal sealed class MatrixMap : INodeMap<GridPosition>, IHeuristicProvider<Gri
     /// </summary>
     public void ClearWalls()
     {
+        if (this._wallCount == 0)
+            return;
+
         Array.Clear(this._walls);
+        this._wallCount = 0;
+        this.Version++;
+    }
+
+    /// <summary>
+    /// Enumerates the outgoing connections of an existing node.
+    /// </summary>
+    /// <param name="nodeId">The existing node identifier.</param>
+    /// <returns>The outgoing connections.</returns>
+    private IEnumerable<PathConnection> EnumerateConnections(int nodeId)
+    {
+        GridPosition origin = this.GetPosition(nodeId);
+
+        for (int deltaX = -1; deltaX <= 1; deltaX++)
+        {
+            for (int deltaY = -1; deltaY <= 1; deltaY++)
+            {
+                if (deltaX == 0 && deltaY == 0)
+                    continue;
+
+                GridPosition destination = new(origin.X + deltaX, origin.Y + deltaY);
+                if (!this.IsInside(destination) || this.IsWall(destination))
+                    continue;
+
+                bool isDiagonal = deltaX != 0 && deltaY != 0;
+                double cost = isDiagonal ? Math.Sqrt(2) : 1;
+                int destinationId = this.GetNodeId(destination);
+                yield return new PathConnection(destinationId, cost);
+            }
+        }
     }
 
     /// <summary>

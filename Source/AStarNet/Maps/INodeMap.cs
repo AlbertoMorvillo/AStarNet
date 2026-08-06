@@ -6,24 +6,24 @@ namespace AStarNet.Maps;
 /// Represents a navigable map containing nodes used by the pathfinding algorithm.
 /// </summary>
 /// <remarks>
-/// Implementations must return a node whose identifier matches the identifier requested by <see cref="GetNode"/> and
-/// must return a non-null connection sequence from <see cref="GetConnections"/>. The pathfinder validates these
-/// requirements and rejects invalid results.
+/// Implementations define which node identifiers exist and the directed connections originating from each node.
 /// </remarks>
-/// <typeparam name="TContent">The type of the optional node content.</typeparam>
-public interface INodeMap<TContent>
+public interface INodeMap
 {
     /// <summary>
-    /// Retrieves the node associated with the specified identifier.
+    /// Determines whether a node identifier exists in the map.
     /// </summary>
-    /// <param name="id">The identifier of the node to retrieve.</param>
-    /// <returns>The matching node with the requested identifier, or <see langword="null"/> when no node exists.</returns>
-    PathNode<TContent>? GetNode(int id);
+    /// <param name="nodeId">The node identifier.</param>
+    /// <returns><see langword="true"/> when the node exists; otherwise, <see langword="false"/>.</returns>
+    bool ContainsNode(int nodeId);
 
     /// <summary>
     /// Retrieves the outgoing connections of a specified node.
     /// </summary>
-    /// <param name="node">The node whose connections are requested.</param>
-    /// <returns>The non-null sequence of outgoing connections of <paramref name="node"/>.</returns>
-    IEnumerable<PathConnection<TContent>> GetConnections(PathNode<TContent> node);
+    /// <param name="nodeId">The identifier of the node whose connections are requested.</param>
+    /// <returns>
+    /// The outgoing connections of the node, an empty sequence when the node has no outgoing connections, or
+    /// <see langword="null"/> only when <paramref name="nodeId"/> does not identify an existing node.
+    /// </returns>
+    IEnumerable<PathConnection>? GetConnections(int nodeId);
 }

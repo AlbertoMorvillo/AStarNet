@@ -5,20 +5,19 @@ namespace AStarNet;
 /// <summary>
 /// Represents one node in a computed path together with its traversal costs.
 /// </summary>
-/// <typeparam name="TContent">The type of the optional node content.</typeparam>
-public readonly struct PathStep<TContent> : IEquatable<PathStep<TContent>>
+public readonly struct PathStep : IEquatable<PathStep>
 {
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PathStep{TContent}"/> struct.
+    /// Initializes a new instance of the <see cref="PathStep"/> struct.
     /// </summary>
-    /// <param name="node">The node represented by this step.</param>
+    /// <param name="nodeId">The node identifier.</param>
     /// <param name="costFromPrevious">The traversal cost from the previous step.</param>
     /// <param name="costFromStart">The accumulated traversal cost from the start.</param>
-    internal PathStep(PathNode<TContent> node, double costFromPrevious, double costFromStart)
+    internal PathStep(int nodeId, double costFromPrevious, double costFromStart)
     {
-        this.Node = node;
+        this.NodeId = nodeId;
         this.CostFromPrevious = costFromPrevious;
         this.CostFromStart = costFromStart;
     }
@@ -28,9 +27,9 @@ public readonly struct PathStep<TContent> : IEquatable<PathStep<TContent>>
     #region Properties
 
     /// <summary>
-    /// Gets the node represented by this step.
+    /// Gets the node identifier represented by this step.
     /// </summary>
-    public PathNode<TContent> Node { get; }
+    public int NodeId { get; }
 
     /// <summary>
     /// Gets the traversal cost from the previous step, or zero for the first step.
@@ -47,13 +46,13 @@ public readonly struct PathStep<TContent> : IEquatable<PathStep<TContent>>
     #region Operators
 
     /// <inheritdoc/>
-    public static bool operator ==(PathStep<TContent> left, PathStep<TContent> right)
+    public static bool operator ==(PathStep left, PathStep right)
     {
         return left.Equals(right);
     }
 
     /// <inheritdoc/>
-    public static bool operator !=(PathStep<TContent> left, PathStep<TContent> right)
+    public static bool operator !=(PathStep left, PathStep right)
     {
         return !left.Equals(right);
     }
@@ -63,9 +62,9 @@ public readonly struct PathStep<TContent> : IEquatable<PathStep<TContent>>
     #region Public methods
 
     /// <inheritdoc/>
-    public bool Equals(PathStep<TContent> other)
+    public bool Equals(PathStep other)
     {
-        return PathNode<TContent>.Equals(this.Node, other.Node)
+        return this.NodeId == other.NodeId
             && this.CostFromPrevious.Equals(other.CostFromPrevious)
             && this.CostFromStart.Equals(other.CostFromStart);
     }
@@ -73,13 +72,13 @@ public readonly struct PathStep<TContent> : IEquatable<PathStep<TContent>>
     /// <inheritdoc/>
     public override bool Equals(object? obj)
     {
-        return obj is PathStep<TContent> other && this.Equals(other);
+        return obj is PathStep other && this.Equals(other);
     }
 
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        return HashCode.Combine(this.Node, this.CostFromPrevious, this.CostFromStart);
+        return HashCode.Combine(this.NodeId, this.CostFromPrevious, this.CostFromStart);
     }
 
     #endregion

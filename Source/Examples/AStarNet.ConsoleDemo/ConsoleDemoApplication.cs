@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using AStarNet.ConsoleDemo.PathFinding;
 using AStarNet.ConsoleDemo.UI;
 
@@ -11,14 +12,16 @@ internal sealed class ConsoleDemoApplication
 {
     private const int GridWidth = 22;
     private const int GridHeight = 22;
-
+    private const int DefaultWallSeed = 2026;
     private readonly MatrixMap _map;
-    private readonly PathFinder<GridPosition> _pathFinder;
+    private readonly PathFinder _pathFinder;
     private readonly ConsoleRenderer _renderer;
 
     private GridPosition? _start;
     private GridPosition? _destination;
-    private Path<GridPosition>? _path;
+    private Path? _path;
+    private int _wallSeed;
+    private bool _isWallLayoutModified;
     private string _statusMessage;
     private ConsoleColor _statusColor;
 
@@ -28,12 +31,15 @@ internal sealed class ConsoleDemoApplication
     public ConsoleDemoApplication()
     {
         this._map = new MatrixMap(GridWidth, GridHeight);
-        this._pathFinder = new PathFinder<GridPosition>(this._map, this._map);
+        this._pathFinder = new PathFinder(
+            nodeMap: this._map,
+            heuristicProvider: this._map);
         this._renderer = new ConsoleRenderer(this._map);
+        this._wallSeed = DefaultWallSeed;
         this._statusMessage = "Choose a start and destination, then press Enter.";
         this._statusColor = ConsoleColor.Gray;
 
-        this.FillDefaultMap();
+        RandomWallLayoutGenerator.Generate(this._map, DefaultWallSeed);
     }
 
     /// <summary>
@@ -41,21 +47,16 @@ internal sealed class ConsoleDemoApplication
     /// </summary>
     public void Run()
     {
-        if (!this._renderer.CanRender(out string? reason))
-        {
-            Console.Error.WriteLine(reason);
-            return;
-        }
+        bool isConsoleInitialized = false;
 
         try
         {
+            if (!this.TryEnsureCanRender())
+                return;
+
             Console.CursorVisible = true;
-            this._renderer.Draw(
-                this._start,
-                this._destination,
-                this._path,
-                this._statusMessage,
-                this._statusColor);
+            isConsoleInitialized = true;
+            this.DrawCurrentState();
 
             while (true)
             {
@@ -67,19 +68,19 @@ internal sealed class ConsoleDemoApplication
                 }
 
                 this.HandleKey(keyInfo.Key);
-                this._renderer.Draw(
-                    this._start,
-                    this._destination,
-                    this._path,
-                    this._statusMessage,
-                    this._statusColor);
+
+                if (!this.TryDraw())
+                    return;
             }
         }
         finally
         {
-            Console.ResetColor();
-            Console.CursorVisible = true;
-            this._renderer.MoveCursorBelowDemo();
+            if (isConsoleInitialized)
+            {
+                Console.ResetColor();
+                Console.CursorVisible = true;
+                this._renderer.MoveCursorBelowDemo();
+            }
         }
     }
 
@@ -120,6 +121,10 @@ internal sealed class ConsoleDemoApplication
                 this.SetStatus("Path hidden.", ConsoleColor.Gray);
                 break;
 
+            case ConsoleKey.R:
+                this.GenerateRandomMap();
+                break;
+
             case ConsoleKey.Delete:
                 this.ClearMapAfterConfirmation();
                 break;
@@ -136,6 +141,7 @@ internal sealed class ConsoleDemoApplication
 
         if (this._start.HasValue)
         {
+            this._isWallLayoutModified |= this._map.IsWall(marker);
             this._map.SetWall(marker, isWall: false);
             this.SetStatus("Start set.", ConsoleColor.Green);
         }
@@ -157,6 +163,7 @@ internal sealed class ConsoleDemoApplication
 
         if (this._destination.HasValue)
         {
+            this._isWallLayoutModified |= this._map.IsWall(marker);
             this._map.SetWall(marker, isWall: false);
             this.SetStatus("Destination set.", ConsoleColor.Red);
         }
@@ -183,6 +190,7 @@ internal sealed class ConsoleDemoApplication
 
         bool isWall = !this._map.IsWall(marker);
         this._map.SetWall(marker, isWall);
+        this._isWallLayoutModified = true;
         this.InvalidatePath();
         this.SetStatus(isWall ? "Wall added." : "Wall removed.", ConsoleColor.Gray);
     }
@@ -202,11 +210,13 @@ internal sealed class ConsoleDemoApplication
         int destinationId = this._map.GetNodeId(this._destination.Value);
         long startTimestamp = Stopwatch.GetTimestamp();
 
-        this._path = this._pathFinder.FindPath(startId, destinationId);
+        this._path = this._pathFinder.FindPath(
+            startNodeId: startId,
+            destinationNodeId: destinationId);
 
         TimeSpan elapsed = Stopwatch.GetElapsedTime(startTimestamp);
 
-        if (this._path.Count == 0)
+        if (this._path.IsEmpty)
         {
             this.SetStatus(
                 $"No path found ({elapsed.TotalMilliseconds:0.###} ms).",
@@ -215,9 +225,99 @@ internal sealed class ConsoleDemoApplication
         }
 
         this.SetStatus(
-            $"Path found: {this._path.Count} nodes, cost {this._path.Cost:0.###} " +
+            $"Path found: {this._path.Steps.Length} nodes, cost {this._path.Cost:0.###} " +
             $"({elapsed.TotalMilliseconds:0.###} ms).",
             ConsoleColor.Cyan);
+    }
+
+    /// <summary>
+    /// Requests a seed and replaces the current map with a generated wall layout.
+    /// </summary>
+    private void GenerateRandomMap()
+    {
+        int? seed = this.ReadSeed();
+
+        if (!seed.HasValue)
+            return;
+
+        this._map.ClearWalls();
+        this._start = null;
+        this._destination = null;
+        this._path = null;
+        RandomWallLayoutGenerator.Generate(this._map, seed.Value);
+        this._wallSeed = seed.Value;
+        this._isWallLayoutModified = false;
+        this.SetStatus($"Map generated with seed {seed.Value}.", ConsoleColor.Cyan);
+    }
+
+    /// <summary>
+    /// Reads a numeric seed, or generates one after two consecutive empty confirmations.
+    /// </summary>
+    /// <returns>The selected seed, or <see langword="null"/> when input is cancelled.</returns>
+    private int? ReadSeed()
+    {
+        StringBuilder input = new();
+        bool awaitingRandomConfirmation = false;
+
+        this.SetStatus("Seed: integer; Enter twice = random; Esc = cancel.", ConsoleColor.Yellow);
+        if (!this.TryDraw())
+            return null;
+
+        while (true)
+        {
+            ConsoleKeyInfo keyInfo = Console.ReadKey(intercept: true);
+
+            if (keyInfo.Key == ConsoleKey.Escape)
+            {
+                this.SetStatus("Map generation cancelled.", ConsoleColor.Gray);
+                return null;
+            }
+
+            if (keyInfo.Key == ConsoleKey.Enter)
+            {
+                if (input.Length > 0)
+                {
+                    if (int.TryParse(input.ToString(), out int seed))
+                        return seed;
+
+                    this.SetStatus("Seed must be a 32-bit integer.", ConsoleColor.Yellow);
+                    if (!this.TryDraw())
+                        return null;
+
+                    continue;
+                }
+
+                if (awaitingRandomConfirmation)
+                    return Random.Shared.Next();
+
+                awaitingRandomConfirmation = true;
+            }
+            else if (keyInfo.Key == ConsoleKey.Backspace)
+            {
+                if (input.Length > 0)
+                    input.Length--;
+
+                awaitingRandomConfirmation = false;
+            }
+            else if (input.Length < 11 &&
+                (char.IsDigit(keyInfo.KeyChar) || (keyInfo.KeyChar == '-' && input.Length == 0)))
+            {
+                input.Append(keyInfo.KeyChar);
+                awaitingRandomConfirmation = false;
+            }
+            else
+            {
+                continue;
+            }
+
+            string message = awaitingRandomConfirmation
+                ? "Empty seed: press Enter again for random."
+                : $"Seed: {input}_";
+
+            this.SetStatus(message, ConsoleColor.Yellow);
+            if (!this.TryDraw())
+                return null;
+        }
     }
 
     /// <summary>
@@ -225,13 +325,9 @@ internal sealed class ConsoleDemoApplication
     /// </summary>
     private void ClearMapAfterConfirmation()
     {
-        this.SetStatus("Clear walls, endpoints, and path? Press Y to confirm.", ConsoleColor.Yellow);
-        this._renderer.Draw(
-            this._start,
-            this._destination,
-            this._path,
-            this._statusMessage,
-            this._statusColor);
+        this.SetStatus("Clear map? Press Y to confirm.", ConsoleColor.Yellow);
+        if (!this.TryDraw())
+            return;
 
         ConsoleKeyInfo confirmation = Console.ReadKey(intercept: true);
 
@@ -245,6 +341,7 @@ internal sealed class ConsoleDemoApplication
         this._start = null;
         this._destination = null;
         this._path = null;
+        this._isWallLayoutModified = true;
         this.SetStatus("Map cleared.", ConsoleColor.Gray);
     }
 
@@ -268,24 +365,47 @@ internal sealed class ConsoleDemoApplication
     }
 
     /// <summary>
-    /// Adds the initial walls used to make the demo immediately interesting.
+    /// Draws the current state when the console has sufficient space.
     /// </summary>
-    private void FillDefaultMap()
+    /// <returns><see langword="true"/> when the state was rendered; otherwise, <see langword="false"/>.</returns>
+    private bool TryDraw()
     {
-        for (int y = 3; y < 18; y++)
-        {
-            if (y != 10)
-            {
-                this._map.SetWall(new GridPosition(7, y), isWall: true);
-            }
-        }
+        if (!this.TryEnsureCanRender())
+            return false;
 
-        for (int x = 7; x < 18; x++)
-        {
-            if (x != 13)
-            {
-                this._map.SetWall(new GridPosition(x, 15), isWall: true);
-            }
-        }
+        this.DrawCurrentState();
+        return true;
     }
+
+    /// <summary>
+    /// Draws the current application state after console availability has been verified.
+    /// </summary>
+    private void DrawCurrentState()
+    {
+        this._renderer.Draw(
+            this._start,
+            this._destination,
+            this._path,
+            this._wallSeed,
+            this._isWallLayoutModified,
+            this._statusMessage,
+            this._statusColor);
+    }
+
+    /// <summary>
+    /// Verifies that console operations required by the demo are available.
+    /// </summary>
+    /// <returns><see langword="true"/> when rendering can continue; otherwise, <see langword="false"/>.</returns>
+    private bool TryEnsureCanRender()
+    {
+        if (this._renderer.CanRender(out string? reason))
+            return true;
+
+        if (!Console.IsOutputRedirected)
+            Console.Clear();
+
+        Console.Error.WriteLine(reason);
+        return false;
+    }
+
 }

@@ -71,8 +71,11 @@ Do not add empty regions.
 
 After making changes:
 
-1. Restore dependencies when necessary.
-2. Build the entire solution.
-3. Run the relevant existing tests.
-4. Report any build warnings or failing tests.
-5. Summarize every modified file.
+1. Do not automatically restore dependencies, build the solution, or run tests.
+2. Assess whether a build is warranted based on the scope and risk of the changes.
+3. Tell the user when a build is recommended and briefly explain why.
+4. Run the build only after receiving explicit confirmation from the user.
+5. When a build is confirmed, restore dependencies if necessary, build the entire solution, and run the relevant
+   existing tests unless the user requests a narrower validation scope.
+6. Report any build warnings or failing tests.
+7. Summarize every modified file.

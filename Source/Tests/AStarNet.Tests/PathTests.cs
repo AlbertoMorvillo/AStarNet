@@ -11,31 +11,29 @@ public sealed class PathTests
     [Fact]
     public void Empty_ContainsNoStepsAndHasZeroCost()
     {
-        Path<string> path = Path<string>.Empty;
+        Path path = Path.Empty;
 
         Assert.True(path.IsEmpty);
         Assert.Empty(path.Steps);
-        Assert.Equal(0, path.Count);
         Assert.Equal(0, path.Cost);
-        Assert.Null(path.Start);
-        Assert.Null(path.End);
+        Assert.Null(path.StartNodeId);
+        Assert.Null(path.EndNodeId);
     }
 
     /// <summary>
-    /// Verifies that construction calculates every step cost correctly.
+    /// Verifies that a created path contains every calculated step cost.
     /// </summary>
     [Fact]
-    public void Constructor_CalculatesStepAndTotalCosts()
+    public void CreatedPath_ContainsCalculatedStepAndTotalCosts()
     {
-        Path<string> path = TestPathFactory.Create(0, (1, 1.25), (2, 2.75));
+        Path path = TestPathFactory.Create(0, (1, 1.25), (2, 2.75));
 
-        Assert.Equal([0, 1, 2], path.Steps.Select(step => step.Node.Id));
+        Assert.Equal([0, 1, 2], path.Steps.Select(step => step.NodeId));
         Assert.Equal([0, 1.25, 2.75], path.Steps.Select(step => step.CostFromPrevious));
         Assert.Equal([0, 1.25, 4], path.Steps.Select(step => step.CostFromStart));
         Assert.Equal(4, path.Cost);
-        Assert.Equal(path.Steps[1].Node, path[1]);
-        Assert.Same(path.Steps[0].Node, path.Start);
-        Assert.Same(path.Steps[^1].Node, path.End);
+        Assert.Equal(path.Steps[0].NodeId, path.StartNodeId);
+        Assert.Equal(path.Steps[^1].NodeId, path.EndNodeId);
     }
 
     /// <summary>
@@ -44,14 +42,14 @@ public sealed class PathTests
     [Fact]
     public void Equality_WhenStepsMatch_ReturnsTrueAndProducesSameHashCode()
     {
-        Path<string> left = TestPathFactory.Create(0, (1, 1), (2, 2));
-        Path<string> right = TestPathFactory.Create(0, (1, 1), (2, 2));
+        Path left = TestPathFactory.Create(0, (1, 1), (2, 2));
+        Path right = TestPathFactory.Create(0, (1, 1), (2, 2));
 
         Assert.Equal(left, right);
         Assert.True(left == right);
         Assert.False(left != right);
         Assert.Equal(left.GetHashCode(), right.GetHashCode());
-        Assert.True(Path<string>.Equals(left, right));
+        Assert.True(Path.Equals(left, right));
     }
 
     /// <summary>
@@ -60,11 +58,11 @@ public sealed class PathTests
     [Fact]
     public void Equality_WhenIntermediateStepCostsDiffer_ReturnsFalse()
     {
-        Path<string> left = TestPathFactory.Create(0, (1, 1), (2, 2));
-        Path<string> right = TestPathFactory.Create(0, (1, 2), (2, 1));
+        Path left = TestPathFactory.Create(0, (1, 1), (2, 2));
+        Path right = TestPathFactory.Create(0, (1, 2), (2, 1));
 
         Assert.Equal(left.Cost, right.Cost);
-        Assert.Equal(left.Steps.Select(step => step.Node), right.Steps.Select(step => step.Node));
+        Assert.Equal(left.Steps.Select(step => step.NodeId), right.Steps.Select(step => step.NodeId));
         Assert.NotEqual(left, right);
         Assert.True(left != right);
     }
@@ -75,9 +73,9 @@ public sealed class PathTests
     [Fact]
     public void Equality_WhenOperandsAreNull_FollowsReferenceNullSemantics()
     {
-        Path<string>? left = null;
-        Path<string>? right = null;
-        Path<string> path = Path<string>.Empty;
+        Path? left = null;
+        Path? right = null;
+        Path path = Path.Empty;
 
         Assert.True(left == right);
         Assert.False(left != right);
@@ -91,12 +89,12 @@ public sealed class PathTests
     [Fact]
     public void Concat_WhenPathsAreConnected_RecalculatesAccumulatedCosts()
     {
-        Path<string> first = TestPathFactory.Create(0, (1, 1), (2, 2));
-        Path<string> second = TestPathFactory.Create(2, (3, 4));
+        Path first = TestPathFactory.Create(0, (1, 1), (2, 2));
+        Path second = TestPathFactory.Create(2, (3, 4));
 
-        Path<string> combined = first.Concat(second);
+        Path combined = first.Concat(second);
 
-        Assert.Equal([0, 1, 2, 3], combined.Steps.Select(step => step.Node.Id));
+        Assert.Equal([0, 1, 2, 3], combined.Steps.Select(step => step.NodeId));
         Assert.Equal([0, 1, 3, 7], combined.Steps.Select(step => step.CostFromStart));
         Assert.Equal(7, combined.Cost);
     }
@@ -107,15 +105,15 @@ public sealed class PathTests
     [Fact]
     public void Concat_WhenSequenceContainsEmptyPaths_SkipsThem()
     {
-        Path<string> first = TestPathFactory.Create(0, (1, 1));
-        Path<string> second = TestPathFactory.Create(1, (2, 2));
+        Path first = TestPathFactory.Create(0, (1, 1));
+        Path second = TestPathFactory.Create(1, (2, 2));
 
-        Path<string> fromArray = Path<string>.Concat(Path<string>.Empty, first, Path<string>.Empty, second);
-        IEnumerable<Path<string>> sequence = [Path<string>.Empty, first, second, Path<string>.Empty];
-        Path<string> fromEnumerable = Path<string>.Concat(sequence);
+        Path fromArray = Path.Concat(Path.Empty, first, Path.Empty, second);
+        IEnumerable<Path> sequence = [Path.Empty, first, second, Path.Empty];
+        Path fromEnumerable = Path.Concat(sequence);
 
         Assert.Equal(fromArray, fromEnumerable);
-        Assert.Equal([0, 1, 2], fromArray.Steps.Select(step => step.Node.Id));
+        Assert.Equal([0, 1, 2], fromArray.Steps.Select(step => step.NodeId));
     }
 
     /// <summary>
@@ -124,9 +122,20 @@ public sealed class PathTests
     [Fact]
     public void Concat_WhenNoNonEmptyPathExists_ReturnsSharedEmptyPath()
     {
-        Path<string> result = Path<string>.Concat(Path<string>.Empty, Path<string>.Empty);
+        Path result = Path.Concat(Path.Empty, Path.Empty);
 
-        Assert.Same(Path<string>.Empty, result);
+        Assert.Same(Path.Empty, result);
+    }
+
+    /// <summary>
+    /// Verifies that concatenating no arguments returns the shared empty path.
+    /// </summary>
+    [Fact]
+    public void Concat_WhenNoPathsAreSupplied_ReturnsSharedEmptyPath()
+    {
+        Path result = Path.Concat();
+
+        Assert.Same(Path.Empty, result);
     }
 
     /// <summary>
@@ -135,8 +144,8 @@ public sealed class PathTests
     [Fact]
     public void Concat_WhenPathsAreDisconnected_Throws()
     {
-        Path<string> first = TestPathFactory.Create(0, (1, 1));
-        Path<string> second = TestPathFactory.Create(2, (3, 1));
+        Path first = TestPathFactory.Create(0, (1, 1));
+        Path second = TestPathFactory.Create(2, (3, 1));
 
         Assert.Throws<ArgumentException>(() => first.Concat(second));
     }
@@ -147,12 +156,12 @@ public sealed class PathTests
     [Fact]
     public void Concat_WhenAnArgumentIsNull_Throws()
     {
-        Path<string> path = TestPathFactory.Create(0, (1, 1));
-        IEnumerable<Path<string>> sequence = [path, null!];
+        Path path = TestPathFactory.Create(0, (1, 1));
+        IEnumerable<Path> sequence = [path, null!];
 
         Assert.Throws<ArgumentNullException>(() => path.Concat(null!));
-        Assert.Throws<ArgumentNullException>(() => Path<string>.Concat((Path<string>[]?)null!));
-        Assert.Throws<ArgumentNullException>(() => Path<string>.Concat(sequence));
+        Assert.Throws<ArgumentNullException>(() => Path.Concat((Path[]?)null!));
+        Assert.Throws<ArgumentNullException>(() => Path.Concat(sequence));
     }
 
     /// <summary>
@@ -161,8 +170,8 @@ public sealed class PathTests
     [Fact]
     public void Concat_WhenAccumulatedCostOverflows_Throws()
     {
-        Path<string> first = TestPathFactory.Create(0, (1, double.MaxValue));
-        Path<string> second = TestPathFactory.Create(1, (2, double.MaxValue));
+        Path first = TestPathFactory.Create(0, (1, double.MaxValue));
+        Path second = TestPathFactory.Create(1, (2, double.MaxValue));
 
         Assert.Throws<InvalidOperationException>(() => first.Concat(second));
     }

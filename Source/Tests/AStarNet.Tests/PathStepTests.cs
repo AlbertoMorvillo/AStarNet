@@ -11,8 +11,8 @@ public sealed class PathStepTests
     [Fact]
     public void Equality_WhenAllComponentsMatch_ReturnsTrue()
     {
-        PathStep<string> left = PathStepTests.CreateFinalStep(4, 2, 5);
-        PathStep<string> right = PathStepTests.CreateFinalStep(4, 2, 5);
+        PathStep left = PathStepTests.CreateFinalStep(4, 2, 5);
+        PathStep right = PathStepTests.CreateFinalStep(4, 2, 5);
 
         Assert.Equal(left, right);
         Assert.True(left == right);
@@ -35,8 +35,8 @@ public sealed class PathStepTests
         double costFromPrevious,
         double costFromStart)
     {
-        PathStep<string> baseline = PathStepTests.CreateFinalStep(4, 2, 5);
-        PathStep<string> different = PathStepTests.CreateFinalStep(nodeId, costFromPrevious, costFromStart);
+        PathStep baseline = PathStepTests.CreateFinalStep(4, 2, 5);
+        PathStep different = PathStepTests.CreateFinalStep(nodeId, costFromPrevious, costFromStart);
 
         Assert.NotEqual(baseline, different);
         Assert.False(baseline == different);
@@ -50,13 +50,13 @@ public sealed class PathStepTests
     /// <param name="costFromPrevious">The cost of the final connection.</param>
     /// <param name="costFromStart">The total path cost.</param>
     /// <returns>The final path step.</returns>
-    private static PathStep<string> CreateFinalStep(
+    private static PathStep CreateFinalStep(
         int nodeId,
         double costFromPrevious,
         double costFromStart)
     {
         double precedingCost = costFromStart - costFromPrevious;
-        Path<string> path = TestPathFactory.Create(0, (1, precedingCost), (nodeId, costFromPrevious));
+        Path path = TestPathFactory.Create(0, (1, precedingCost), (nodeId, costFromPrevious));
         return path.Steps[^1];
     }
 }

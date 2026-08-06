@@ -5,10 +5,10 @@ namespace AStarNet.Tests;
 /// <summary>
 /// Provides a small immutable graph tailored to pathfinding tests.
 /// </summary>
-internal sealed class TestGraph : INodeMap<string>
+internal sealed class TestGraph : INodeMap
 {
-    private readonly Dictionary<int, PathNode<string>> _nodes;
-    private readonly Dictionary<int, PathConnection<string>[]> _connections;
+    private readonly HashSet<int> _nodeIds;
+    private readonly Dictionary<int, PathConnection[]> _connections;
 
     /// <summary>
     /// Initializes a graph from node identifiers and directed weighted edges.
@@ -17,90 +17,88 @@ internal sealed class TestGraph : INodeMap<string>
     /// <param name="edges">The directed edges represented by source, destination, and cost.</param>
     internal TestGraph(IEnumerable<int> nodeIds, params (int From, int To, double Cost)[] edges)
     {
-        Dictionary<int, PathNode<string>> nodes = nodeIds.ToDictionary(
+        HashSet<int> identifiers = nodeIds.ToHashSet();
+        Dictionary<int, List<PathConnection>> connections = identifiers.ToDictionary(
             id => id,
-            id => new PathNode<string>(id, $"Node {id}"));
-        Dictionary<int, List<PathConnection<string>>> connections = nodes.Keys.ToDictionary(
-            id => id,
-            _ => new List<PathConnection<string>>());
+            _ => new List<PathConnection>());
 
         foreach ((int from, int to, double cost) in edges)
         {
-            connections[from].Add(new PathConnection<string>(nodes[to], cost));
+            connections[from].Add(new PathConnection(to, cost));
         }
 
-        this._nodes = nodes;
+        this._nodeIds = identifiers;
         this._connections = connections.ToDictionary(pair => pair.Key, pair => pair.Value.ToArray());
     }
 
     /// <inheritdoc/>
-    public PathNode<string>? GetNode(int id)
+    public bool ContainsNode(int nodeId)
     {
-        this._nodes.TryGetValue(id, out PathNode<string>? node);
-        return node;
+        return this._nodeIds.Contains(nodeId);
     }
 
     /// <inheritdoc/>
-    public IEnumerable<PathConnection<string>> GetConnections(PathNode<string> node)
+    public IEnumerable<PathConnection>? GetConnections(int nodeId)
     {
-        return this._connections[node.Id];
+        this._connections.TryGetValue(nodeId, out PathConnection[]? connections);
+        return connections;
     }
 }
 
 /// <summary>
 /// Provides delegates for simulating valid and invalid node-map implementations.
 /// </summary>
-internal sealed class DelegateNodeMap : INodeMap<string>
+internal sealed class DelegateNodeMap : INodeMap
 {
-    private readonly Func<int, PathNode<string>?> _getNode;
-    private readonly Func<PathNode<string>, IEnumerable<PathConnection<string>>> _getConnections;
+    private readonly Func<int, bool> _containsNode;
+    private readonly Func<int, IEnumerable<PathConnection>?> _getConnections;
 
     /// <summary>
     /// Initializes a delegate-backed node map.
     /// </summary>
-    /// <param name="getNode">The node lookup operation.</param>
+    /// <param name="containsNode">The node-existence operation.</param>
     /// <param name="getConnections">The connection lookup operation.</param>
     internal DelegateNodeMap(
-        Func<int, PathNode<string>?> getNode,
-        Func<PathNode<string>, IEnumerable<PathConnection<string>>> getConnections)
+        Func<int, bool> containsNode,
+        Func<int, IEnumerable<PathConnection>?> getConnections)
     {
-        this._getNode = getNode;
+        this._containsNode = containsNode;
         this._getConnections = getConnections;
     }
 
     /// <inheritdoc/>
-    public PathNode<string>? GetNode(int id)
+    public bool ContainsNode(int nodeId)
     {
-        return this._getNode(id);
+        return this._containsNode(nodeId);
     }
 
     /// <inheritdoc/>
-    public IEnumerable<PathConnection<string>> GetConnections(PathNode<string> node)
+    public IEnumerable<PathConnection>? GetConnections(int nodeId)
     {
-        return this._getConnections(node);
+        return this._getConnections(nodeId);
     }
 }
 
 /// <summary>
 /// Provides a delegate-backed heuristic for focused tests.
 /// </summary>
-internal sealed class DelegateHeuristic : Heuristics.IHeuristicProvider<string>
+internal sealed class DelegateHeuristic : Heuristics.IHeuristicProvider
 {
-    private readonly Func<PathNode<string>, PathNode<string>, double> _getHeuristic;
+    private readonly Func<int, int, double> _getHeuristic;
 
     /// <summary>
     /// Initializes a delegate-backed heuristic.
     /// </summary>
     /// <param name="getHeuristic">The heuristic calculation.</param>
-    internal DelegateHeuristic(Func<PathNode<string>, PathNode<string>, double> getHeuristic)
+    internal DelegateHeuristic(Func<int, int, double> getHeuristic)
     {
         this._getHeuristic = getHeuristic;
     }
 
     /// <inheritdoc/>
-    public double GetHeuristic(PathNode<string> from, PathNode<string> to)
+    public double GetHeuristic(int fromNodeId, int toNodeId)
     {
-        return this._getHeuristic(from, to);
+        return this._getHeuristic(fromNodeId, toNodeId);
     }
 }
 
@@ -115,7 +113,7 @@ internal static class TestPathFactory
     /// <param name="startId">The start-node identifier.</param>
     /// <param name="connections">The ordered destination identifiers and costs.</param>
     /// <returns>The created path.</returns>
-    internal static Path<string> Create(int startId, params (int DestinationId, double Cost)[] connections)
+    internal static Path Create(int startId, params (int DestinationId, double Cost)[] connections)
     {
         int[] nodeIds = [startId, .. connections.Select(connection => connection.DestinationId)];
         (int From, int To, double Cost)[] edges = new (int From, int To, double Cost)[connections.Length];
@@ -129,7 +127,7 @@ internal static class TestPathFactory
         }
 
         TestGraph graph = new(nodeIds.Distinct(), edges);
-        PathFinder<string> pathFinder = new(graph);
+        PathFinder pathFinder = new(graph);
         return pathFinder.FindPath(startId, currentNodeId);
     }
 }

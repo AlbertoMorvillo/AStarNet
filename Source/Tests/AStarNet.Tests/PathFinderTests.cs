@@ -6,6 +6,15 @@ namespace AStarNet.Tests;
 public sealed class PathFinderTests
 {
     /// <summary>
+    /// Verifies that a pathfinder cannot be created without a node map.
+    /// </summary>
+    [Fact]
+    public void Constructor_WhenNodeMapIsNull_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => new PathFinder(null!));
+    }
+
+    /// <summary>
     /// Verifies that a later cheaper route replaces an earlier expensive route.
     /// </summary>
     [Fact]
@@ -17,14 +26,51 @@ public sealed class PathFinderTests
             (0, 2, 1),
             (2, 1, 1),
             (1, 3, 1));
-        PathFinder<string> pathFinder = new(graph);
+        PathFinder pathFinder = new(graph);
 
-        Path<string> path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
+        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
 
-        Assert.Equal([0, 2, 1, 3], path.Steps.Select(step => step.Node.Id));
+        Assert.Equal([0, 2, 1, 3], path.Steps.Select(step => step.NodeId));
         Assert.Equal([0, 1, 1, 1], path.Steps.Select(step => step.CostFromPrevious));
         Assert.Equal([0, 1, 2, 3], path.Steps.Select(step => step.CostFromStart));
         Assert.Equal(3, path.Cost);
+    }
+
+    /// <summary>
+    /// Verifies that parallel connections are evaluated independently and the cheapest one is retained.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenParallelConnectionsExist_UsesTheCheapestConnection()
+    {
+        TestGraph graph = new(
+            [0, 1],
+            (0, 1, 5),
+            (0, 1, 1));
+        PathFinder pathFinder = new(graph);
+
+        Path path = pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 1], path.Steps.Select(step => step.NodeId));
+        Assert.Equal(1, path.Cost);
+        Assert.Equal(1, path.Steps[1].CostFromPrevious);
+    }
+
+    /// <summary>
+    /// Verifies that a positive-cost self-loop cannot displace the best known route to its node.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenGraphContainsPositiveCostSelfLoop_IgnoresTheLoop()
+    {
+        TestGraph graph = new(
+            [0, 1],
+            (0, 0, 1),
+            (0, 1, 2));
+        PathFinder pathFinder = new(graph);
+
+        Path path = pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 1], path.Steps.Select(step => step.NodeId));
+        Assert.Equal(2, path.Cost);
     }
 
     /// <summary>
@@ -46,13 +92,42 @@ public sealed class PathFinderTests
             [2] = 4,
             [3] = 0
         };
-        DelegateHeuristic heuristic = new((from, _) => estimates[from.Id]);
-        PathFinder<string> pathFinder = new(graph, heuristic);
+        DelegateHeuristic heuristic = new((fromNodeId, _) => estimates[fromNodeId]);
+        PathFinder pathFinder = new(graph, heuristic);
 
-        Path<string> path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
+        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
 
-        Assert.Equal([0, 1, 3], path.Steps.Select(step => step.Node.Id));
+        Assert.Equal([0, 1, 3], path.Steps.Select(step => step.NodeId));
         Assert.Equal(4, path.Cost);
+    }
+
+    /// <summary>
+    /// Verifies that an admissible but inconsistent heuristic can reopen a node with a cheaper route.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenHeuristicIsInconsistent_ReopensNodeAndReturnsOptimalPath()
+    {
+        TestGraph graph = new(
+            [0, 1, 2, 3],
+            (0, 1, 2),
+            (0, 2, 1),
+            (2, 1, 0.5),
+            (1, 3, 1),
+            (2, 3, 100));
+        Dictionary<int, double> estimates = new()
+        {
+            [0] = 2.5,
+            [1] = 0,
+            [2] = 1.5,
+            [3] = 0
+        };
+        DelegateHeuristic heuristic = new((fromNodeId, _) => estimates[fromNodeId]);
+        PathFinder pathFinder = new(graph, heuristic);
+
+        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 2, 1, 3], path.Steps.Select(step => step.NodeId));
+        Assert.Equal(2.5, path.Cost);
     }
 
     /// <summary>
@@ -62,14 +137,43 @@ public sealed class PathFinderTests
     public void FindPath_WhenStartEqualsDestination_ReturnsSingleNodePath()
     {
         TestGraph graph = new([4]);
-        PathFinder<string> pathFinder = new(graph);
+        DelegateHeuristic heuristic = new((_, _) => throw new InvalidOperationException("Heuristic was invoked."));
+        PathFinder pathFinder = new(graph, heuristic);
 
-        Path<string> path = pathFinder.FindPath(4, 4, TestContext.Current.CancellationToken);
+        Path path = pathFinder.FindPath(4, 4, TestContext.Current.CancellationToken);
 
         Assert.False(path.IsEmpty);
-        Assert.Equal(1, path.Count);
-        Assert.Equal(4, path[0].Id);
+        Assert.Single(path.Steps);
+        Assert.Equal(4, path.Steps[0].NodeId);
         Assert.Equal(0, path.Cost);
+    }
+
+    /// <summary>
+    /// Verifies that child identifiers declared by the map are not checked through the endpoint-existence operation.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenConnectionsDeclareChildren_ValidatesOnlyRequestedEndpoints()
+    {
+        List<int> validatedNodeIds = [];
+        DelegateNodeMap map = new(
+            nodeId =>
+            {
+                validatedNodeIds.Add(nodeId);
+                return nodeId is 0 or 2;
+            },
+            nodeId => nodeId switch
+            {
+                0 => [new PathConnection(1, 1)],
+                1 => [new PathConnection(2, 1)],
+                2 => [],
+                _ => null
+            });
+        PathFinder pathFinder = new(map);
+
+        Path path = pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 1, 2], path.Steps.Select(step => step.NodeId));
+        Assert.Equal([0, 2], validatedNodeIds);
     }
 
     /// <summary>
@@ -79,11 +183,38 @@ public sealed class PathFinderTests
     public void FindPath_WhenDestinationIsUnreachable_ReturnsSharedEmptyPath()
     {
         TestGraph graph = new([0, 1, 2], (0, 1, 1));
-        PathFinder<string> pathFinder = new(graph);
+        PathFinder pathFinder = new(graph);
 
-        Path<string> path = pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken);
+        Path path = pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken);
 
-        Assert.Same(Path<string>.Empty, path);
+        Assert.Same(Path.Empty, path);
+    }
+
+    /// <summary>
+    /// Verifies that reaching the destination completes the search without requesting its outgoing connections.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenDestinationIsReached_DoesNotExpandDestination()
+    {
+        List<int> expandedNodeIds = [];
+        DelegateNodeMap map = new(
+            nodeId => nodeId is 0 or 1,
+            nodeId =>
+            {
+                expandedNodeIds.Add(nodeId);
+                return nodeId switch
+                {
+                    0 => [new PathConnection(1, 1)],
+                    1 => throw new InvalidOperationException("The destination was expanded."),
+                    _ => null
+                };
+            });
+        PathFinder pathFinder = new(map);
+
+        Path path = pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 1], path.Steps.Select(step => step.NodeId));
+        Assert.Equal([0], expandedNodeIds);
     }
 
     /// <summary>
@@ -97,11 +228,11 @@ public sealed class PathFinderTests
             (0, 1, 0),
             (1, 0, 0),
             (1, 2, 1));
-        PathFinder<string> pathFinder = new(graph);
+        PathFinder pathFinder = new(graph);
 
-        Path<string> path = pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken);
+        Path path = pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken);
 
-        Assert.Equal([0, 1, 2], path.Steps.Select(step => step.Node.Id));
+        Assert.Equal([0, 1, 2], path.Steps.Select(step => step.NodeId));
         Assert.Equal(1, path.Cost);
     }
 
@@ -116,28 +247,10 @@ public sealed class PathFinderTests
     public void FindPath_WhenAnEndpointDoesNotExist_Throws(int startId, int destinationId)
     {
         TestGraph graph = new([0, 1]);
-        PathFinder<string> pathFinder = new(graph);
+        PathFinder pathFinder = new(graph);
 
         Assert.Throws<KeyNotFoundException>(
             () => pathFinder.FindPath(startId, destinationId, TestContext.Current.CancellationToken));
-    }
-
-    /// <summary>
-    /// Verifies that endpoint identifiers returned by the node map must match the request.
-    /// </summary>
-    /// <param name="mismatchedRequest">The request for which the map returns a mismatched node.</param>
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    public void FindPath_WhenNodeMapReturnsMismatchedEndpointId_Throws(int mismatchedRequest)
-    {
-        DelegateNodeMap map = new(
-            id => id == mismatchedRequest ? new PathNode<string>(99) : new PathNode<string>(id),
-            _ => []);
-        PathFinder<string> pathFinder = new(map);
-
-        Assert.Throws<InvalidOperationException>(
-            () => pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken));
     }
 
     /// <summary>
@@ -146,23 +259,28 @@ public sealed class PathFinderTests
     [Fact]
     public void FindPath_WhenNodeMapReturnsNullConnections_Throws()
     {
-        DelegateNodeMap map = new(id => new PathNode<string>(id), _ => null!);
-        PathFinder<string> pathFinder = new(map);
+        DelegateNodeMap map = new(_ => true, _ => null);
+        PathFinder pathFinder = new(map);
 
         Assert.Throws<InvalidOperationException>(
             () => pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken));
     }
 
     /// <summary>
-    /// Verifies that a default connection with no destination is rejected at the provider boundary.
+    /// Verifies that a child identifier is rejected when the map later reports it as invalid during expansion.
     /// </summary>
     [Fact]
-    public void FindPath_WhenNodeMapReturnsDefaultConnection_Throws()
+    public void FindPath_WhenDiscoveredChildCannotBeExpanded_Throws()
     {
         DelegateNodeMap map = new(
-            id => new PathNode<string>(id),
-            node => node.Id == 0 ? [default(PathConnection<string>)] : []);
-        PathFinder<string> pathFinder = new(map);
+            nodeId => nodeId is 0 or 1,
+            nodeId => nodeId switch
+            {
+                0 => [new PathConnection(99, 1)],
+                1 => [],
+                _ => null
+            });
+        PathFinder pathFinder = new(map);
 
         Assert.Throws<InvalidOperationException>(
             () => pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken));
@@ -181,7 +299,7 @@ public sealed class PathFinderTests
     {
         TestGraph graph = new([0, 1], (0, 1, 1));
         DelegateHeuristic heuristic = new((_, _) => estimate);
-        PathFinder<string> pathFinder = new(graph, heuristic);
+        PathFinder pathFinder = new(graph, heuristic);
 
         Assert.Throws<InvalidOperationException>(
             () => pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken));
@@ -194,8 +312,8 @@ public sealed class PathFinderTests
     public void FindPath_WhenLaterHeuristicIsInvalid_Throws()
     {
         TestGraph graph = new([0, 1, 2], (0, 1, 1), (1, 2, 1));
-        DelegateHeuristic heuristic = new((from, _) => from.Id == 0 ? 0 : double.NaN);
-        PathFinder<string> pathFinder = new(graph, heuristic);
+        DelegateHeuristic heuristic = new((fromNodeId, _) => fromNodeId == 0 ? 0 : double.NaN);
+        PathFinder pathFinder = new(graph, heuristic);
 
         Assert.Throws<InvalidOperationException>(
             () => pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken));
@@ -211,7 +329,7 @@ public sealed class PathFinderTests
             [0, 1, 2],
             (0, 1, double.MaxValue),
             (1, 2, double.MaxValue));
-        PathFinder<string> pathFinder = new(graph);
+        PathFinder pathFinder = new(graph);
 
         Assert.Throws<InvalidOperationException>(
             () => pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken));
@@ -224,8 +342,8 @@ public sealed class PathFinderTests
     public void FindPath_WhenPriorityScoreOverflows_Throws()
     {
         TestGraph graph = new([0, 1, 2], (0, 1, double.MaxValue));
-        DelegateHeuristic heuristic = new((from, _) => from.Id == 0 ? 0 : double.MaxValue);
-        PathFinder<string> pathFinder = new(graph, heuristic);
+        DelegateHeuristic heuristic = new((fromNodeId, _) => fromNodeId == 0 ? 0 : double.MaxValue);
+        PathFinder pathFinder = new(graph, heuristic);
 
         Assert.Throws<InvalidOperationException>(
             () => pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken));
@@ -242,10 +360,10 @@ public sealed class PathFinderTests
             id =>
             {
                 calls++;
-                return new PathNode<string>(id);
+                return true;
             },
             _ => []);
-        PathFinder<string> pathFinder = new(map);
+        PathFinder pathFinder = new(map);
         using CancellationTokenSource cancellationSource = new();
         cancellationSource.Cancel();
 
@@ -262,13 +380,13 @@ public sealed class PathFinderTests
     {
         using CancellationTokenSource cancellationSource = new();
         DelegateNodeMap map = new(
-            id => new PathNode<string>(id),
-            node =>
+            _ => true,
+            nodeId =>
             {
                 cancellationSource.Cancel();
-                return [new PathConnection<string>(new PathNode<string>(node.Id + 1), 1)];
+                return [new PathConnection(nodeId + 1, 1)];
             });
-        PathFinder<string> pathFinder = new(map);
+        PathFinder pathFinder = new(map);
 
         Assert.Throws<OperationCanceledException>(
             () => pathFinder.FindPath(0, 2, cancellationSource.Token));
@@ -281,14 +399,14 @@ public sealed class PathFinderTests
     public async Task FindPath_WhenCalledConcurrently_DoesNotShareMutableSearchState()
     {
         TestGraph graph = new([0, 1, 2], (0, 1, 1), (1, 2, 1));
-        PathFinder<string> pathFinder = new(graph);
-        Task<Path<string>>[] searches = [.. Enumerable.Range(0, 32)
+        PathFinder pathFinder = new(graph);
+        Task<Path>[] searches = [.. Enumerable.Range(0, 32)
             .Select(_ => Task.Run(
                 () => pathFinder.FindPath(0, 2, TestContext.Current.CancellationToken),
                 TestContext.Current.CancellationToken))];
 
-        Path<string>[] paths = await Task.WhenAll(searches);
+        Path[] paths = await Task.WhenAll(searches);
 
-        Assert.All(paths, path => Assert.Equal([0, 1, 2], path.Steps.Select(step => step.Node.Id)));
+        Assert.All(paths, path => Assert.Equal([0, 1, 2], path.Steps.Select(step => step.NodeId)));
     }
 }

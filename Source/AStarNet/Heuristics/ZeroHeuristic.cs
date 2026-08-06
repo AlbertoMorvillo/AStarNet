@@ -1,14 +1,12 @@
 namespace AStarNet.Heuristics;
 
 /// <summary>
-/// Provides an admissible heuristic that always returns zero, making pathfinding behave like Dijkstra's algorithm
-/// and preserving the optimality guarantee.
+/// Provides a zero heuristic, making A* behave like Dijkstra's algorithm.
 /// </summary>
-/// <typeparam name="TContent">The type of the optional node content.</typeparam>
-public sealed class ZeroHeuristic<TContent> : IHeuristicProvider<TContent>
+public sealed class ZeroHeuristic : IHeuristicProvider
 {
     /// <inheritdoc/>
-    public double GetHeuristic(PathNode<TContent> from, PathNode<TContent> to)
+    public double GetHeuristic(int fromNodeId, int toNodeId)
     {
         return 0;
     }

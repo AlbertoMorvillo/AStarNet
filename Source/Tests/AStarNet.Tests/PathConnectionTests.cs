@@ -1,35 +1,24 @@
 namespace AStarNet.Tests;
 
 /// <summary>
-/// Tests connection construction and its numeric invariants.
+/// Tests construction and validation of path connections.
 /// </summary>
 public sealed class PathConnectionTests
 {
     /// <summary>
-    /// Verifies that a valid connection retains its destination and cost.
+    /// Verifies that construction preserves the destination identifier and cost.
     /// </summary>
     [Fact]
-    public void Constructor_WhenArgumentsAreValid_StoresArguments()
+    public void Constructor_WithValidValues_PreservesValues()
     {
-        PathNode<string> destination = new(3);
+        PathConnection connection = new(3, 1.5);
 
-        PathConnection<string> connection = new(destination, 1.5);
-
-        Assert.Same(destination, connection.Destination);
+        Assert.Equal(3, connection.DestinationNodeId);
         Assert.Equal(1.5, connection.Cost);
     }
 
     /// <summary>
-    /// Verifies that a missing destination is rejected.
-    /// </summary>
-    [Fact]
-    public void Constructor_WhenDestinationIsNull_Throws()
-    {
-        Assert.Throws<ArgumentNullException>(() => new PathConnection<string>(null!, 1));
-    }
-
-    /// <summary>
-    /// Verifies that invalid connection costs are rejected.
+    /// Verifies that invalid traversal costs are rejected immediately.
     /// </summary>
     /// <param name="cost">The invalid cost.</param>
     [Theory]
@@ -37,10 +26,8 @@ public sealed class PathConnectionTests
     [InlineData(double.NaN)]
     [InlineData(double.NegativeInfinity)]
     [InlineData(double.PositiveInfinity)]
-    public void Constructor_WhenCostIsInvalid_Throws(double cost)
+    public void Constructor_WithInvalidCost_Throws(double cost)
     {
-        PathNode<string> destination = new(3);
-
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PathConnection<string>(destination, cost));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PathConnection(3, cost));
     }
 }

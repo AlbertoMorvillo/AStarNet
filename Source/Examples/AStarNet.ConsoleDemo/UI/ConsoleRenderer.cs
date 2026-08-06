@@ -10,6 +10,7 @@ internal sealed class ConsoleRenderer
     private const char EmptySymbol = ' ';
     private const char StartSymbol = 'S';
     private const char DestinationSymbol = 'D';
+    private const char StartAndDestinationSymbol = 'B';
     private const char PathSymbol = '*';
     private const char WallSymbol = '#';
     private const char TopLeftBorderSymbol = '+';
@@ -22,6 +23,7 @@ internal sealed class ConsoleRenderer
     private const ConsoleColor EmptyColor = ConsoleColor.Gray;
     private const ConsoleColor StartColor = ConsoleColor.Green;
     private const ConsoleColor DestinationColor = ConsoleColor.Red;
+    private const ConsoleColor StartAndDestinationColor = ConsoleColor.Yellow;
     private const ConsoleColor PathColor = ConsoleColor.Cyan;
     private const ConsoleColor WallColor = ConsoleColor.DarkGray;
     private const ConsoleColor BorderColor = ConsoleColor.DarkGray;
@@ -33,11 +35,18 @@ internal sealed class ConsoleRenderer
     private const int InformationWidth = 50;
 
     private readonly MatrixMap _map;
+    private readonly HashSet<int> _pathNodeIds;
     private readonly char[,] _renderedSymbols;
     private readonly ConsoleColor[,] _renderedForegroundColors;
 
     private bool _gridFrameDrawn;
     private bool _informationDrawn;
+    private long _renderedMapVersion = -1;
+    private GridPosition? _renderedStart;
+    private GridPosition? _renderedDestination;
+    private Path? _renderedPath;
+    private int? _renderedWallSeed;
+    private bool _renderedWallLayoutModified;
     private string? _renderedStatusMessage;
     private ConsoleColor _renderedStatusColor;
 
@@ -50,6 +59,7 @@ internal sealed class ConsoleRenderer
         ArgumentNullException.ThrowIfNull(map);
 
         this._map = map;
+        this._pathNodeIds = [];
         this._renderedSymbols = new char[map.Width, map.Height];
         this._renderedForegroundColors = new ConsoleColor[map.Width, map.Height];
         this.Marker = new GridPosition(map.Width / 2, map.Height / 2);
@@ -76,7 +86,7 @@ internal sealed class ConsoleRenderer
         int requiredWidth = this.GetInformationLeft() + InformationWidth;
         int requiredHeight = GridTop + this._map.Height + 3;
 
-        if (Console.BufferWidth < requiredWidth || Console.BufferHeight < requiredHeight)
+        if (Console.WindowWidth < requiredWidth || Console.WindowHeight < requiredHeight)
         {
             reason = $"The terminal must be at least {requiredWidth} columns by {requiredHeight} rows.";
             return false;
@@ -122,32 +132,35 @@ internal sealed class ConsoleRenderer
     /// <param name="start">The selected start, if any.</param>
     /// <param name="destination">The selected destination, if any.</param>
     /// <param name="path">The current path, if any.</param>
+    /// <param name="wallSeed">The seed used to generate the current wall layout.</param>
+    /// <param name="isWallLayoutModified">Whether the wall layout has been modified after generation.</param>
     /// <param name="statusMessage">The status message.</param>
     /// <param name="statusColor">The status message color.</param>
     public void Draw(
         GridPosition? start,
         GridPosition? destination,
-        Path<GridPosition>? path,
+        Path? path,
+        int wallSeed,
+        bool isWallLayoutModified,
         string statusMessage,
         ConsoleColor statusColor)
     {
-        HashSet<int> pathNodeIds = [];
-
-        if (path is not null)
-        {
-            foreach (PathStep<GridPosition> step in path.Steps)
-            {
-                pathNodeIds.Add(step.Node.Id);
-            }
-        }
-
         ConsoleColor previousForeground = Console.ForegroundColor;
         ConsoleColor previousBackground = Console.BackgroundColor;
 
         try
         {
-            this.DrawGrid(start, destination, pathNodeIds);
-            this.DrawInformation(statusMessage, statusColor);
+            if (this.HasGridChanged(start, destination, path))
+            {
+                this.UpdatePathNodeIds(path);
+                this.DrawGrid(start, destination);
+                this._renderedMapVersion = this._map.Version;
+                this._renderedStart = start;
+                this._renderedDestination = destination;
+                this._renderedPath = path;
+            }
+
+            this.DrawInformation(wallSeed, isWallLayoutModified, statusMessage, statusColor);
             this.PositionCursorAtMarker();
         }
         finally
@@ -171,11 +184,9 @@ internal sealed class ConsoleRenderer
     /// </summary>
     /// <param name="start">The selected start, if any.</param>
     /// <param name="destination">The selected destination, if any.</param>
-    /// <param name="pathNodeIds">The node identifiers contained in the current path.</param>
     private void DrawGrid(
         GridPosition? start,
-        GridPosition? destination,
-        HashSet<int> pathNodeIds)
+        GridPosition? destination)
     {
         if (!this._gridFrameDrawn)
         {
@@ -207,7 +218,7 @@ internal sealed class ConsoleRenderer
             for (int x = 0; x < this._map.Width; x++)
             {
                 GridPosition position = new(x, y);
-                this.DrawCell(position, start, destination, pathNodeIds);
+                this.DrawCell(position, start, destination);
             }
         }
     }
@@ -218,17 +229,20 @@ internal sealed class ConsoleRenderer
     /// <param name="position">The cell position.</param>
     /// <param name="start">The selected start, if any.</param>
     /// <param name="destination">The selected destination, if any.</param>
-    /// <param name="pathNodeIds">The node identifiers contained in the current path.</param>
     private void DrawCell(
         GridPosition position,
         GridPosition? start,
-        GridPosition? destination,
-        HashSet<int> pathNodeIds)
+        GridPosition? destination)
     {
         char symbol = EmptySymbol;
         ConsoleColor foreground = EmptyColor;
 
-        if (start == position)
+        if (start == position && destination == position)
+        {
+            symbol = StartAndDestinationSymbol;
+            foreground = StartAndDestinationColor;
+        }
+        else if (start == position)
         {
             symbol = StartSymbol;
             foreground = StartColor;
@@ -243,7 +257,7 @@ internal sealed class ConsoleRenderer
             symbol = WallSymbol;
             foreground = WallColor;
         }
-        else if (pathNodeIds.Contains(this._map.GetNodeId(position)))
+        else if (this._pathNodeIds.Contains(this._map.GetNodeId(position)))
         {
             symbol = PathSymbol;
             foreground = PathColor;
@@ -264,35 +278,90 @@ internal sealed class ConsoleRenderer
     }
 
     /// <summary>
+    /// Determines whether any state represented by grid cells has changed.
+    /// </summary>
+    /// <param name="start">The selected start, if any.</param>
+    /// <param name="destination">The selected destination, if any.</param>
+    /// <param name="path">The current path, if any.</param>
+    /// <returns><see langword="true"/> when the grid must be redrawn; otherwise, <see langword="false"/>.</returns>
+    private bool HasGridChanged(GridPosition? start, GridPosition? destination, Path? path)
+    {
+        return !this._gridFrameDrawn ||
+            this._renderedMapVersion != this._map.Version ||
+            this._renderedStart != start ||
+            this._renderedDestination != destination ||
+            !ReferenceEquals(this._renderedPath, path);
+    }
+
+    /// <summary>
+    /// Rebuilds the path-node lookup used while drawing cells.
+    /// </summary>
+    /// <param name="path">The current path, if any.</param>
+    private void UpdatePathNodeIds(Path? path)
+    {
+        if (ReferenceEquals(this._renderedPath, path))
+            return;
+
+        this._pathNodeIds.Clear();
+
+        if (path is null)
+            return;
+
+        foreach (PathStep step in path.Steps)
+        {
+            this._pathNodeIds.Add(step.NodeId);
+        }
+    }
+
+    /// <summary>
     /// Draws the title, controls, legend, and current status.
     /// </summary>
+    /// <param name="wallSeed">The seed used to generate the current wall layout.</param>
+    /// <param name="isWallLayoutModified">Whether the wall layout has been modified after generation.</param>
     /// <param name="statusMessage">The status message.</param>
     /// <param name="statusColor">The status color.</param>
-    private void DrawInformation(string statusMessage, ConsoleColor statusColor)
+    private void DrawInformation(
+        int wallSeed,
+        bool isWallLayoutModified,
+        string statusMessage,
+        ConsoleColor statusColor)
     {
         int left = this.GetInformationLeft();
 
         if (!this._informationDrawn)
         {
             this.WriteLineAt(left, GridTop, "AStar.net Console Demo", ConsoleColor.Cyan);
-            this.WriteLineAt(left, GridTop + 2, "Controls", ConsoleColor.White);
-            this.WriteLineAt(left, GridTop + 3, "Arrow keys    Move marker", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 4, "S             Set/remove start", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 5, "D             Set/remove destination", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 6, "X or Space    Add/remove wall", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 7, "Enter         Find path", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 8, "Backspace     Hide path", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 9, "Delete        Clear everything", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 10, "Escape        Exit", ConsoleColor.Gray);
 
-            this.WriteLineAt(left, GridTop + 12, "Legend", ConsoleColor.White);
-            this.WriteLineAt(left, GridTop + 13, $"{StartSymbol}  Start", StartColor);
-            this.WriteLineAt(left, GridTop + 14, $"{DestinationSymbol}  Destination", DestinationColor);
-            this.WriteLineAt(left, GridTop + 15, $"{PathSymbol}  Path", PathColor);
-            this.WriteLineAt(left, GridTop + 16, $"{WallSymbol}  Wall", WallColor);
-            this.WriteLineAt(left, GridTop + 18, "Status", ConsoleColor.White);
+            this.WriteLineAt(left, GridTop + 3, "[ Controls ]", ConsoleColor.White);
+            this.WriteLineAt(left, GridTop + 4, "Arrow keys    Move marker", ConsoleColor.Gray);
+            this.WriteLineAt(left, GridTop + 5, "S             Set/remove start", ConsoleColor.Gray);
+            this.WriteLineAt(left, GridTop + 6, "D             Set/remove destination", ConsoleColor.Gray);
+            this.WriteLineAt(left, GridTop + 7, "X or Space    Add/remove wall", ConsoleColor.Gray);
+            this.WriteLineAt(left, GridTop + 8, "Enter         Find path", ConsoleColor.Gray);
+            this.WriteLineAt(left, GridTop + 9, "Backspace     Hide path", ConsoleColor.Gray);
+            this.WriteLineAt(left, GridTop + 10, "R             Generate random walls", ConsoleColor.Gray);
+            this.WriteLineAt(left, GridTop + 11, "Delete        Clear everything", ConsoleColor.Gray);
+            this.WriteLineAt(left, GridTop + 12, "Escape        Exit", ConsoleColor.Gray);
+
+            this.WriteLineAt(left, GridTop + 14, "[ Legend ]", ConsoleColor.White);
+            this.WriteLineAt(left, GridTop + 15, $"{StartSymbol}  Start", StartColor);
+            this.WriteLineAt(left, GridTop + 16, $"{DestinationSymbol}  Destination", DestinationColor);
+            this.WriteLineAt(left, GridTop + 17, $"{StartAndDestinationSymbol}  Start and destination", StartAndDestinationColor);
+            this.WriteLineAt(left, GridTop + 18, $"{PathSymbol}  Path", PathColor);
+            this.WriteLineAt(left, GridTop + 19, $"{WallSymbol}  Wall", WallColor);
+
+            this.WriteLineAt(left, GridTop + 21, "[ Status ]", ConsoleColor.White);
 
             this._informationDrawn = true;
+        }
+
+        if (this._renderedWallSeed != wallSeed ||
+            this._renderedWallLayoutModified != isWallLayoutModified)
+        {
+            string modificationMarker = isWallLayoutModified ? "*" : string.Empty;
+            this.WriteLineAt(left, GridTop + 1, $"Wall seed: {wallSeed}{modificationMarker}", ConsoleColor.DarkGray);
+            this._renderedWallSeed = wallSeed;
+            this._renderedWallLayoutModified = isWallLayoutModified;
         }
 
         if (this._renderedStatusMessage == statusMessage &&
@@ -301,7 +370,7 @@ internal sealed class ConsoleRenderer
             return;
         }
 
-        this.WriteLineAt(left, GridTop + 19, statusMessage, statusColor);
+        this.WriteLineAt(left, GridTop + 22, statusMessage, statusColor);
         this._renderedStatusMessage = statusMessage;
         this._renderedStatusColor = statusColor;
     }
