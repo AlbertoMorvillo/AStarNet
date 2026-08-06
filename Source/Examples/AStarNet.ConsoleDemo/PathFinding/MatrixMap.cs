@@ -1,190 +1,148 @@
-// Copyright (c) 2026 Alberto Morvillo
-// Distributed under MIT license
-// https://opensource.org/licenses/MIT
-
-using AStarNet;
 using AStarNet.Heuristics;
 using AStarNet.Maps;
-using System.Numerics;
 
 namespace AStarNet.ConsoleDemo.PathFinding;
 
 /// <summary>
-/// Represents a two-dimensional matrix navigable using the A* algorithm.
+/// Provides a navigable two-dimensional grid and its matching A* heuristic.
 /// </summary>
-public class MatrixMap : INodeMap<Vector2?>, IHeuristicProvider<Vector2?>
+internal sealed class MatrixMap : INodeMap<GridPosition>, IHeuristicProvider<GridPosition>
 {
-    #region Fields
-
-    private readonly Vector2[,] _vectorMatrix;
-
-    #endregion
-
-    #region Constructors
+    private readonly bool[,] _walls;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="MatrixMap"/> class.
+    /// Initializes a grid with the specified dimensions.
     /// </summary>
-    /// <param name="width">The width of the matrix.</param>
-    /// <param name="height">The height of the matrix.</param>
-    /// <exception cref="ArgumentOutOfRangeException">A dimension is not positive or the matrix is too large.</exception>
+    /// <param name="width">The number of columns.</param>
+    /// <param name="height">The number of rows.</param>
     public MatrixMap(int width, int height)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-
         _ = checked(width * height);
 
         this.Width = width;
         this.Height = height;
-        this._vectorMatrix = new Vector2[width, height];
-        this.WallBlocks = new bool[width, height];
-
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                this._vectorMatrix[x, y] = new Vector2(x, y);
-            }
-        }
+        this._walls = new bool[width, height];
     }
 
-    #endregion
-
-    #region Properties
-
     /// <summary>
-    /// Gets the width of the matrix.
+    /// Gets the number of columns.
     /// </summary>
     public int Width { get; }
 
     /// <summary>
-    /// Gets the height of the matrix.
+    /// Gets the number of rows.
     /// </summary>
     public int Height { get; }
 
-    /// <summary>
-    /// Gets the matrix that indicates which cells are blocked.
-    /// </summary>
-    public bool[,] WallBlocks { get; }
-
-    #endregion
-
-    #region Public methods
-
     /// <inheritdoc/>
-    public IEnumerable<PathConnection<Vector2?>> GetConnections(PathNode<Vector2?> node)
-    {
-        Vector2 coordinates = MatrixMap.GetCoordinates(node);
-        List<PathConnection<Vector2?>> connections = [];
-
-        for (int dx = -1; dx <= 1; dx++)
-        {
-            for (int dy = -1; dy <= 1; dy++)
-            {
-                if (dx == 0 && dy == 0)
-                    continue;
-
-                int newX = (int)coordinates.X + dx;
-                int newY = (int)coordinates.Y + dy;
-
-                if (!this.IsInsideMap(newX, newY) || this.WallBlocks[newX, newY])
-                    continue;
-
-                double cost = dx == 0 || dy == 0 ? 1.0 : Math.Sqrt(2);
-                Vector2 childContent = this._vectorMatrix[newX, newY];
-                int childId = this.GetNodeId(newX, newY);
-
-                PathNode<Vector2?> childNode = new(childId, childContent);
-                connections.Add(new PathConnection<Vector2?>(childNode, cost));
-            }
-        }
-
-        return connections;
-    }
-
-    /// <inheritdoc/>
-    public PathNode<Vector2?>? GetNode(int id)
+    public PathNode<GridPosition>? GetNode(int id)
     {
         if (id < 0 || id >= this.Width * this.Height)
             return null;
 
-        int x = id % this.Width;
-        int y = id / this.Width;
-
-        if (this.WallBlocks[x, y])
-            return null;
-
-        return new PathNode<Vector2?>(id, this._vectorMatrix[x, y]);
+        GridPosition position = this.GetPosition(id);
+        return this.IsWall(position) ? null : new PathNode<GridPosition>(id, position);
     }
 
     /// <inheritdoc/>
-    public double GetHeuristic(PathNode<Vector2?> from, PathNode<Vector2?> to)
+    public IEnumerable<PathConnection<GridPosition>> GetConnections(PathNode<GridPosition> node)
     {
-        Vector2 fromCoordinates = MatrixMap.GetCoordinates(from);
-        Vector2 toCoordinates = MatrixMap.GetCoordinates(to);
-        double dx = toCoordinates.X - fromCoordinates.X;
-        double dy = toCoordinates.Y - fromCoordinates.Y;
+        GridPosition origin = node.Content;
 
-        return Math.Sqrt((dx * dx) + (dy * dy));
+        for (int deltaX = -1; deltaX <= 1; deltaX++)
+        {
+            for (int deltaY = -1; deltaY <= 1; deltaY++)
+            {
+                if (deltaX == 0 && deltaY == 0)
+                    continue;
+
+                GridPosition destination = new(origin.X + deltaX, origin.Y + deltaY);
+                if (!this.IsInside(destination) || this.IsWall(destination))
+                    continue;
+
+                bool isDiagonal = deltaX != 0 && deltaY != 0;
+                double cost = isDiagonal ? Math.Sqrt(2) : 1;
+                int destinationId = this.GetNodeId(destination);
+                PathNode<GridPosition> destinationNode = new(destinationId, destination);
+                yield return new PathConnection<GridPosition>(destinationNode, cost);
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public double GetHeuristic(PathNode<GridPosition> from, PathNode<GridPosition> to)
+    {
+        int distanceX = Math.Abs(to.Content.X - from.Content.X);
+        int distanceY = Math.Abs(to.Content.Y - from.Content.Y);
+        int diagonalSteps = Math.Min(distanceX, distanceY);
+        int straightSteps = Math.Max(distanceX, distanceY) - diagonalSteps;
+
+        return (diagonalSteps * Math.Sqrt(2)) + straightSteps;
     }
 
     /// <summary>
-    /// Gets the node identifier associated with the specified coordinates.
+    /// Gets the node identifier associated with a position.
     /// </summary>
-    /// <param name="coordinates">The matrix coordinates.</param>
+    /// <param name="position">The grid position.</param>
     /// <returns>The corresponding node identifier.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="coordinates"/> is outside the matrix.</exception>
-    public int GetNodeId(Vector2 coordinates)
+    public int GetNodeId(GridPosition position)
     {
-        int x = checked((int)coordinates.X);
-        int y = checked((int)coordinates.Y);
+        if (!this.IsInside(position))
+            throw new ArgumentOutOfRangeException(nameof(position), "The position is outside the grid.");
 
-        if (!this.IsInsideMap(x, y) || coordinates.X != x || coordinates.Y != y)
-            throw new ArgumentOutOfRangeException(nameof(coordinates), "Coordinates are outside the matrix or are not integral.");
-
-        return this.GetNodeId(x, y);
-    }
-
-    #endregion
-
-    #region Private methods
-
-    /// <summary>
-    /// Gets the coordinates stored in a node.
-    /// </summary>
-    /// <param name="node">The node whose content is requested.</param>
-    /// <returns>The node coordinates.</returns>
-    /// <exception cref="ArgumentException">The node does not contain coordinates.</exception>
-    private static Vector2 GetCoordinates(PathNode<Vector2?> node)
-    {
-        ArgumentNullException.ThrowIfNull(node);
-
-        return node.Content
-            ?? throw new ArgumentException("The node does not contain matrix coordinates.", nameof(node));
+        return (position.Y * this.Width) + position.X;
     }
 
     /// <summary>
-    /// Gets the node identifier associated with integral coordinates.
+    /// Determines whether a position contains a wall.
     /// </summary>
-    /// <param name="x">The horizontal coordinate.</param>
-    /// <param name="y">The vertical coordinate.</param>
-    /// <returns>The corresponding node identifier.</returns>
-    private int GetNodeId(int x, int y)
+    /// <param name="position">The grid position.</param>
+    /// <returns><see langword="true"/> when the position is blocked; otherwise, <see langword="false"/>.</returns>
+    public bool IsWall(GridPosition position)
     {
-        return (y * this.Width) + x;
+        return this.IsInside(position) && this._walls[position.X, position.Y];
     }
 
     /// <summary>
-    /// Determines whether the specified coordinates are inside the matrix.
+    /// Sets the wall state of a position.
     /// </summary>
-    /// <param name="x">The horizontal coordinate.</param>
-    /// <param name="y">The vertical coordinate.</param>
-    /// <returns><see langword="true"/> when the coordinates are valid; otherwise, <see langword="false"/>.</returns>
-    private bool IsInsideMap(int x, int y)
+    /// <param name="position">The grid position.</param>
+    /// <param name="isWall">The new wall state.</param>
+    public void SetWall(GridPosition position, bool isWall)
     {
-        return x >= 0 && x < this.Width && y >= 0 && y < this.Height;
+        if (!this.IsInside(position))
+            throw new ArgumentOutOfRangeException(nameof(position), "The position is outside the grid.");
+
+        this._walls[position.X, position.Y] = isWall;
     }
 
-    #endregion
+    /// <summary>
+    /// Removes every wall from the grid.
+    /// </summary>
+    public void ClearWalls()
+    {
+        Array.Clear(this._walls);
+    }
+
+    /// <summary>
+    /// Gets the position associated with a node identifier.
+    /// </summary>
+    /// <param name="id">The node identifier.</param>
+    /// <returns>The corresponding grid position.</returns>
+    private GridPosition GetPosition(int id)
+    {
+        return new GridPosition(id % this.Width, id / this.Width);
+    }
+
+    /// <summary>
+    /// Determines whether a position is inside the grid.
+    /// </summary>
+    /// <param name="position">The position to inspect.</param>
+    /// <returns><see langword="true"/> when the position is inside the grid; otherwise, <see langword="false"/>.</returns>
+    private bool IsInside(GridPosition position)
+    {
+        return position.X >= 0 && position.X < this.Width && position.Y >= 0 && position.Y < this.Height;
+    }
 }
