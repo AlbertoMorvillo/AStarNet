@@ -1,6 +1,6 @@
 # AStar.net
 
-AStar.net is an open-source .NET 10 library for calculating paths with the A* algorithm.
+AStar.net is an open-source .NET 10 library for calculating optimal paths with the A* algorithm.
 
 ## Key features
 

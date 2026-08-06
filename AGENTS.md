@@ -39,12 +39,10 @@ Before making changes, inspect the existing project structure, architecture, and
 - Prefer explicit type declarations over `var` when the type is short and immediately readable.
 - Use `var` only when the resulting type remains obvious from the assignment expression.
 - Do not use `var` for primitive types or other simple types.
+- Use concrete types for local variables unless an interface is necessary for the implementation. Prefer interfaces at
+  API boundaries, such as public signatures and properties, where abstraction provides a meaningful benefit.
 
-- Choose between `class`, `record`, `struct`, and `record struct` according to the type's semantics, not for brevity.
-- Use a `record` when the type primarily represents immutable data and value-based equality is desired.
-- Use a `class` when the type has mutable state, significant behavior, lifecycle, or reference identity.
-- Use a `struct` only for small, immutable value types when value semantics and reduced allocation are meaningful.
-- Before converting an existing type between `class`, `record`, `struct`, or `record struct`, explain the reason and ask for explicit confirmation.
+- Before changing an existing type between `class`, `record class`, `struct`, or `record struct`, explain the reason and ask for explicit confirmation.
 - Do not use primary constructors.
 - Use traditional constructor declarations with an explicit constructor body.
 
@@ -53,14 +51,19 @@ Before making changes, inspect the existing project structure, architecture, and
 When a class is large enough to benefit from regions, use the following order:
 
 1. Constants
-2. Nested types
-3. Fields
-4. Events
-5. Constructors
-6. Properties
+2. Fields
+3. Constructors and finalizers
+4. Properties and indexers
+5. Events
+6. Operators and conversions
 7. Public methods
-8. Protected methods
-9. Private methods
+8. Internal methods
+9. Protected methods
+10. Private methods
+11. Nested types
+
+Within the fields section, place static fields before instance fields. Within each method section, place static methods
+before instance methods when this improves readability; do not split them into separate regions solely for ordering.
 
 Do not add empty regions.
 
