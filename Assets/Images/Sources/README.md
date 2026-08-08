@@ -16,6 +16,8 @@ All assets follow a structured design process to ensure consistency and scalabil
 3. **Final Export** > Assets were exported in **SVG and PNG (1024x1024 px)** formats.
 4. **Icon Optimization** > PNGs were converted into **ICO (16x16, 32x32, 48x48, 256x256 px)** using **GIMP**.
 
+The 128x128 `Source/AStarNet/AStarIcon_128.png` export is reserved for the NuGet package.
+
 ## Modifications & Workflow
 
 To update any graphical asset:  

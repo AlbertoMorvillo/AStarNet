@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AStarNet</RootNamespace>
+    <Authors>Alberto Morvillo</Authors>
+    <PackageId>AStar.net</PackageId>
+    <Title>AStar.net</Title>
+    <Description>AStar.net is a .NET implementation of the A* pathfinding algorithm.</Description>
+    <PackageTags>astar;pathfinding;path-finding;graph;algorithm</PackageTags>
+    <PackageProjectUrl>https://github.com/AlbertoMorvillo/AStarNet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AlbertoMorvillo/AStarNet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>AStarIcon_128.png</PackageIcon>
+    <VersionPrefix>2.0.0</VersionPrefix>
+    <PackageVersion>$(VersionPrefix)</PackageVersion>
+    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+    <FileVersion>$(VersionPrefix).0</FileVersion>
+    <PackageReleaseNotes>Version 2.0.0 – IMPORTANT NOTICE
+    This version introduces significant breaking changes that may require updates to your existing code.
+
+    - Migrated from .NET Standard 2.0 to .NET 10.0
+    - Added convenience methods for working with paths and path steps
+    - Added cooperative cancellation support
+    - Improved path and connection data structures for clarity and robustness
+    - Improved the handling of start and destination nodes, decoupling their selection from the node map structure
+    - Replaced generic node identifiers with integer identifiers
+    - Removed node wrappers and standardized the public API on integer node identifiers
+    - Moved traversal costs from nodes to directed path connections
+    - Path step collections are now immutable
+    - Removed multi-path search to focus the API on the least-cost path produced by A*
+    - Left application content under the ownership of node-map providers
+    - Added Dijkstra behavior when no heuristic provider is supplied
+    - Added optional tie-breaker providers for equal-score candidates and equal-cost parent alternatives
+    - Added built-in 2D and 3D heuristic and line-deviation calculations
+    - Removed obsolete types and members
+    - Performance optimizations</PackageReleaseNotes>
+    <Copyright>Copyright © 2026 Alberto Morvillo</Copyright>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="AStarIcon_128.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\LICENSE" Link="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
