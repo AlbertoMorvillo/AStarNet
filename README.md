@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/.NET-10-512BD4" alt=".NET 10">
   <a href="https://www.nuget.org/packages/AStar.net"><img src="https://img.shields.io/nuget/v/AStar.net" alt="NuGet version"></a>
   <a href="https://www.nuget.org/packages/AStar.net"><img src="https://img.shields.io/nuget/dt/AStar.net" alt="NuGet downloads"></a>
-  <a href="https://github.com/AlbertoMorvillo/AStarNet/actions/workflows/validation.yml"><img src="https://github.com/AlbertoMorvillo/AStarNet/actions/workflows/validation.yml/badge.svg?branch=master&amp;event=workflow_dispatch" alt="Validation"></a>
+  <a href="https://github.com/AlbertoMorvillo/AStarNet/actions/workflows/validation.yml"><img src="https://github.com/AlbertoMorvillo/AStarNet/actions/workflows/validation.yml/badge.svg" alt="Validation"></a>
 </p>
 
 # AStar.net
