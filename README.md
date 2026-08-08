@@ -1,3 +1,20 @@
+<p align="center">
+  <img src="Assets/Images/Raster/AStarBanner.png" alt="AStar.net" width="640">
+</p>
+
+<p align="center">
+  <a href="LICENSE">
+    <img src="https://img.shields.io/github/license/AlbertoMorvillo/AStarNet" alt="License">
+  </a>
+  <img src="https://img.shields.io/badge/.NET-10-512BD4" alt=".NET 10">
+  <a href="https://www.nuget.org/packages/AStar.net">
+    <img src="https://img.shields.io/nuget/v/AStar.net" alt="NuGet version">
+  </a>
+  <a href="https://www.nuget.org/packages/AStar.net">
+    <img src="https://img.shields.io/nuget/dt/AStar.net" alt="NuGet downloads">
+  </a>
+</p>
+
 # AStar.net
 
 AStar.net is an open-source .NET 10 library for calculating paths with the A* algorithm.
