@@ -13,6 +13,9 @@
   <a href="https://www.nuget.org/packages/AStar.net">
     <img src="https://img.shields.io/nuget/dt/AStar.net" alt="NuGet downloads">
   </a>
+  <a href="https://github.com/AlbertoMorvillo/AStarNet/actions/workflows/validation.yml">
+    <img src="https://github.com/AlbertoMorvillo/AStarNet/actions/workflows/validation.yml/badge.svg?branch=master" alt="Validation">
+  </a>
 </p>
 
 # AStar.net
@@ -155,6 +158,7 @@ Use the arrow keys to move the marker and follow the controls displayed beside t
 
 - [Documentation wiki](https://github.com/AlbertoMorvillo/AStarNet/wiki)
 - [NuGet package](https://www.nuget.org/packages/AStar.net)
+- [Releases](https://github.com/AlbertoMorvillo/AStarNet/releases)
 - [License](LICENSE)
 
 ## Licensing
