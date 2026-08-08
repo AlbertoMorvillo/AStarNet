@@ -7,6 +7,8 @@ namespace AStarNet.ConsoleDemo.UI;
 /// </summary>
 internal sealed class ConsoleRenderer
 {
+    #region Constants
+
     private const char EmptySymbol = ' ';
     private const char StartSymbol = 'S';
     private const char DestinationSymbol = 'D';
@@ -31,8 +33,15 @@ internal sealed class ConsoleRenderer
 
     private const int GridLeft = 1;
     private const int GridTop = 1;
-    private const int InformationGap = 4;
-    private const int InformationWidth = 50;
+    private const int InformationGap = 3;
+    private const int InformationWidth = 40;
+    private const int StatisticsGap = 3;
+    private const int StatisticsWidth = 36;
+    private const int StatusWidth = InformationWidth + StatisticsGap + StatisticsWidth;
+
+    #endregion
+
+    #region Fields
 
     private readonly MatrixMap _map;
     private readonly HashSet<int> _pathNodeIds;
@@ -50,6 +59,10 @@ internal sealed class ConsoleRenderer
     private string? _renderedStatusMessage;
     private ConsoleColor _renderedStatusColor;
 
+    #endregion
+
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ConsoleRenderer"/> class.
     /// </summary>
@@ -65,10 +78,18 @@ internal sealed class ConsoleRenderer
         this.Marker = new GridPosition(map.Width / 2, map.Height / 2);
     }
 
+    #endregion
+
+    #region Properties
+
     /// <summary>
     /// Gets the grid position selected by the marker.
     /// </summary>
     public GridPosition Marker { get; private set; }
+
+    #endregion
+
+    #region Public methods
 
     /// <summary>
     /// Determines whether the current console can display the interactive demo.
@@ -83,7 +104,7 @@ internal sealed class ConsoleRenderer
             return false;
         }
 
-        int requiredWidth = this.GetInformationLeft() + InformationWidth;
+        int requiredWidth = Math.Max(this.GetInformationLeft() + InformationWidth, this.GetStatisticsLeft() + StatisticsWidth);
         int requiredHeight = GridTop + this._map.Height + 3;
 
         if (Console.WindowWidth < requiredWidth || Console.WindowHeight < requiredHeight)
@@ -132,6 +153,10 @@ internal sealed class ConsoleRenderer
     /// <param name="start">The selected start, if any.</param>
     /// <param name="destination">The selected destination, if any.</param>
     /// <param name="path">The current path, if any.</param>
+    /// <param name="pathfindingModes">The available pathfinding modes.</param>
+    /// <param name="pathfindingResults">The latest path calculated by each mode.</param>
+    /// <param name="pathfindingElapsedTimes">The latest elapsed time recorded for each mode.</param>
+    /// <param name="selectedPathfindingModeIndex">The index of the currently selected mode.</param>
     /// <param name="wallSeed">The seed used to generate the current wall layout.</param>
     /// <param name="isWallLayoutModified">Whether the wall layout has been modified after generation.</param>
     /// <param name="statusMessage">The status message.</param>
@@ -140,6 +165,10 @@ internal sealed class ConsoleRenderer
         GridPosition? start,
         GridPosition? destination,
         Path? path,
+        GridPathfindingMode[] pathfindingModes,
+        Path?[] pathfindingResults,
+        TimeSpan[] pathfindingElapsedTimes,
+        int selectedPathfindingModeIndex,
         int wallSeed,
         bool isWallLayoutModified,
         string statusMessage,
@@ -160,7 +189,18 @@ internal sealed class ConsoleRenderer
                 this._renderedPath = path;
             }
 
-            this.DrawInformation(wallSeed, isWallLayoutModified, statusMessage, statusColor);
+            this.DrawInformation(
+                wallSeed,
+                isWallLayoutModified,
+                statusMessage,
+                statusColor);
+
+            this.DrawStatistics(
+                pathfindingModes,
+                pathfindingResults,
+                pathfindingElapsedTimes,
+                selectedPathfindingModeIndex);
+
             this.PositionCursorAtMarker();
         }
         finally
@@ -179,6 +219,10 @@ internal sealed class ConsoleRenderer
         Console.SetCursorPosition(0, bottom);
     }
 
+    #endregion
+
+    #region Private methods - Grid rendering
+
     /// <summary>
     /// Draws the grid border and its cells.
     /// </summary>
@@ -191,21 +235,21 @@ internal sealed class ConsoleRenderer
         if (!this._gridFrameDrawn)
         {
             Console.ForegroundColor = BorderColor;
-            this.WriteAt(
+            WriteAt(
                 GridLeft,
                 GridTop,
                 $"{TopLeftBorderSymbol}{new string(HorizontalBorderSymbol, this._map.Width)}{TopRightBorderSymbol}");
 
             for (int y = 0; y < this._map.Height; y++)
             {
-                this.WriteAt(GridLeft, GridTop + y + 1, VerticalBorderSymbol.ToString());
-                this.WriteAt(
+                WriteAt(GridLeft, GridTop + y + 1, VerticalBorderSymbol.ToString());
+                WriteAt(
                     GridLeft + this._map.Width + 1,
                     GridTop + y + 1,
                     VerticalBorderSymbol.ToString());
             }
 
-            this.WriteAt(
+            WriteAt(
                 GridLeft,
                 GridTop + this._map.Height + 1,
                 $"{BottomLeftBorderSymbol}{new string(HorizontalBorderSymbol, this._map.Width)}{BottomRightBorderSymbol}");
@@ -271,7 +315,7 @@ internal sealed class ConsoleRenderer
 
         Console.ForegroundColor = foreground;
         Console.BackgroundColor = MapBackgroundColor;
-        this.WriteAt(GridLeft + position.X + 1, GridTop + position.Y + 1, symbol.ToString());
+        WriteAt(GridLeft + position.X + 1, GridTop + position.Y + 1, symbol.ToString());
 
         this._renderedSymbols[position.X, position.Y] = symbol;
         this._renderedForegroundColors[position.X, position.Y] = foreground;
@@ -313,6 +357,10 @@ internal sealed class ConsoleRenderer
         }
     }
 
+    #endregion
+
+    #region Private methods - Information rendering
+
     /// <summary>
     /// Draws the title, controls, legend, and current status.
     /// </summary>
@@ -330,27 +378,28 @@ internal sealed class ConsoleRenderer
 
         if (!this._informationDrawn)
         {
-            this.WriteLineAt(left, GridTop, "AStar.net Console Demo", ConsoleColor.Cyan);
+            WriteLineAt(left, GridTop, "AStar.net Console Demo", ConsoleColor.Cyan);
 
-            this.WriteLineAt(left, GridTop + 3, "[ Controls ]", ConsoleColor.White);
-            this.WriteLineAt(left, GridTop + 4, "Arrow keys    Move marker", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 5, "S             Set/remove start", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 6, "D             Set/remove destination", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 7, "X or Space    Add/remove wall", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 8, "Enter         Find path", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 9, "Backspace     Hide path", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 10, "R             Generate random walls", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 11, "Delete        Clear everything", ConsoleColor.Gray);
-            this.WriteLineAt(left, GridTop + 12, "Escape        Exit", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 3, "[ Controls ]", ConsoleColor.White);
+            WriteLineAt(left, GridTop + 4, "Arrow keys    Move marker", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 5, "S             Set/remove start", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 6, "D             Set/remove destination", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 7, "X or Space    Add/remove wall", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 8, "H             Select mode", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 9, "Enter         Find paths and statistics", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 10, "Backspace     Hide path", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 11, "R             Generate random walls", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 12, "Delete        Clear everything", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 13, "Escape        Exit", ConsoleColor.Gray);
 
-            this.WriteLineAt(left, GridTop + 14, "[ Legend ]", ConsoleColor.White);
-            this.WriteLineAt(left, GridTop + 15, $"{StartSymbol}  Start", StartColor);
-            this.WriteLineAt(left, GridTop + 16, $"{DestinationSymbol}  Destination", DestinationColor);
-            this.WriteLineAt(left, GridTop + 17, $"{StartAndDestinationSymbol}  Start and destination", StartAndDestinationColor);
-            this.WriteLineAt(left, GridTop + 18, $"{PathSymbol}  Path", PathColor);
-            this.WriteLineAt(left, GridTop + 19, $"{WallSymbol}  Wall", WallColor);
+            WriteLineAt(left, GridTop + 15, "[ Legend ]", ConsoleColor.White);
+            WriteLineAt(left, GridTop + 16, $"{StartSymbol}  Start", StartColor);
+            WriteLineAt(left, GridTop + 17, $"{DestinationSymbol}  Destination", DestinationColor);
+            WriteLineAt(left, GridTop + 18, $"{StartAndDestinationSymbol}  Start and destination", StartAndDestinationColor);
+            WriteLineAt(left, GridTop + 19, $"{PathSymbol}  Path", PathColor);
+            WriteLineAt(left, GridTop + 20, $"{WallSymbol}  Wall", WallColor);
 
-            this.WriteLineAt(left, GridTop + 21, "[ Status ]", ConsoleColor.White);
+            WriteLineAt(left, GridTop + 22, "[ Status ]", ConsoleColor.White);
 
             this._informationDrawn = true;
         }
@@ -359,7 +408,7 @@ internal sealed class ConsoleRenderer
             this._renderedWallLayoutModified != isWallLayoutModified)
         {
             string modificationMarker = isWallLayoutModified ? "*" : string.Empty;
-            this.WriteLineAt(left, GridTop + 1, $"Wall seed: {wallSeed}{modificationMarker}", ConsoleColor.DarkGray);
+            WriteLineAt(left, GridTop + 1, $"Wall seed: {wallSeed}{modificationMarker}", ConsoleColor.DarkGray);
             this._renderedWallSeed = wallSeed;
             this._renderedWallLayoutModified = isWallLayoutModified;
         }
@@ -370,10 +419,71 @@ internal sealed class ConsoleRenderer
             return;
         }
 
-        this.WriteLineAt(left, GridTop + 22, statusMessage, statusColor);
+        WriteLineAt(left, GridTop + 23, statusMessage, statusColor, StatusWidth);
         this._renderedStatusMessage = statusMessage;
         this._renderedStatusColor = statusColor;
     }
+
+    /// <summary>
+    /// Draws the latest execution statistics for every available pathfinding mode.
+    /// </summary>
+    /// <param name="pathfindingModes">The available pathfinding modes.</param>
+    /// <param name="pathfindingResults">The latest path calculated by each mode.</param>
+    /// <param name="pathfindingElapsedTimes">The latest elapsed time recorded for each mode.</param>
+    /// <param name="selectedPathfindingModeIndex">The index of the currently selected mode.</param>
+    private void DrawStatistics(
+        GridPathfindingMode[] pathfindingModes,
+        Path?[] pathfindingResults,
+        TimeSpan[] pathfindingElapsedTimes,
+        int selectedPathfindingModeIndex)
+    {
+        int left = this.GetStatisticsLeft();
+
+        WriteLineAt(
+            left,
+            GridTop + 3,
+            "[ Last run: cost / time ]",
+            ConsoleColor.White,
+            StatisticsWidth);
+
+        for (int index = 0; index < pathfindingModes.Length; index++)
+        {
+            GridPathfindingMode mode = pathfindingModes[index];
+            Path? result = pathfindingResults[index];
+            string selectionMarker = index == selectedPathfindingModeIndex ? ">" : " ";
+            string displayName = mode == GridPathfindingMode.Manhattan
+                ? $"{mode.GetDisplayName()} (!)"
+                : mode.GetDisplayName();
+            string cost = result switch
+            {
+                null => "--",
+                { IsEmpty: true } => "none",
+                _ => $"{result.Cost:0.###}"
+            };
+            string elapsed = result is null
+                ? "--"
+                : $"{pathfindingElapsedTimes[index].TotalMilliseconds:0.###}ms";
+
+            WriteLineAt(
+                left,
+                GridTop + 4 + index,
+                $"{selectionMarker}{displayName,-15} {cost,8} {elapsed,10}",
+                index == selectedPathfindingModeIndex ? ConsoleColor.Cyan : ConsoleColor.Gray,
+                StatisticsWidth);
+        }
+
+        WriteLineAt(
+            left,
+            GridTop + 5 + pathfindingModes.Length,
+            "(!) May be non-optimal",
+            ConsoleColor.DarkGray,
+            StatisticsWidth);
+
+    }
+
+    #endregion
+
+    #region Private methods - Console layout
 
     /// <summary>
     /// Positions the native console cursor on the selected grid cell.
@@ -392,22 +502,24 @@ internal sealed class ConsoleRenderer
     /// <param name="top">The zero-based row.</param>
     /// <param name="text">The text to write.</param>
     /// <param name="color">The optional foreground color.</param>
-    private void WriteLineAt(
+    /// <param name="width">The number of columns to overwrite.</param>
+    private static void WriteLineAt(
         int left,
         int top,
         string text,
-        ConsoleColor? color = null)
+        ConsoleColor? color = null,
+        int width = InformationWidth)
     {
         if (color.HasValue)
         {
             Console.ForegroundColor = color.Value;
         }
 
-        string output = text.Length > InformationWidth
-            ? text[..InformationWidth]
-            : text.PadRight(InformationWidth);
+        string output = text.Length > width
+            ? text[..width]
+            : text.PadRight(width);
 
-        this.WriteAt(left, top, output);
+        WriteAt(left, top, output);
     }
 
     /// <summary>
@@ -416,18 +528,29 @@ internal sealed class ConsoleRenderer
     /// <param name="left">The zero-based column.</param>
     /// <param name="top">The zero-based row.</param>
     /// <param name="text">The text to write.</param>
-    private void WriteAt(int left, int top, string text)
+    private static void WriteAt(int left, int top, string text)
     {
         Console.SetCursorPosition(left, top);
         Console.Write(text);
     }
 
     /// <summary>
-    /// Gets the first column available for explanatory text.
+    /// Gets the leftmost console column reserved for controls and status information.
     /// </summary>
-    /// <returns>The zero-based information column.</returns>
+    /// <returns>The zero-based column where the information panel begins.</returns>
     private int GetInformationLeft()
     {
         return GridLeft + this._map.Width + 2 + InformationGap;
     }
+
+    /// <summary>
+    /// Gets the leftmost console column reserved for pathfinding statistics.
+    /// </summary>
+    /// <returns>The zero-based column where the statistics panel begins.</returns>
+    private int GetStatisticsLeft()
+    {
+        return this.GetInformationLeft() + InformationWidth + StatisticsGap;
+    }
+
+    #endregion
 }

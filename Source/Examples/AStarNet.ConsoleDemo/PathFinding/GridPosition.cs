@@ -6,7 +6,7 @@ namespace AStarNet.ConsoleDemo.PathFinding;
 internal readonly record struct GridPosition
 {
     /// <summary>
-    /// Initializes a grid position.
+    /// Initializes a new instance of the <see cref="GridPosition"/> struct.
     /// </summary>
     /// <param name="x">The zero-based horizontal coordinate.</param>
     /// <param name="y">The zero-based vertical coordinate.</param>

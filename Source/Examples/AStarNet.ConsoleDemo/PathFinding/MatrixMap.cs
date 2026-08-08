@@ -1,18 +1,17 @@
-using AStarNet.Heuristics;
 using AStarNet.Maps;
 
 namespace AStarNet.ConsoleDemo.PathFinding;
 
 /// <summary>
-/// Provides a navigable two-dimensional grid and its matching A* heuristic.
+/// Provides a navigable two-dimensional grid.
 /// </summary>
-internal sealed class MatrixMap : INodeMap, IHeuristicProvider
+internal sealed class MatrixMap : INodeMap
 {
     private readonly bool[,] _walls;
     private int _wallCount;
 
     /// <summary>
-    /// Initializes a grid with the specified dimensions.
+    /// Initializes a new instance of the <see cref="MatrixMap"/> class with the specified dimensions.
     /// </summary>
     /// <param name="width">The number of columns.</param>
     /// <param name="height">The number of rows.</param>
@@ -60,19 +59,6 @@ internal sealed class MatrixMap : INodeMap, IHeuristicProvider
         return this.EnumerateConnections(nodeId);
     }
 
-    /// <inheritdoc/>
-    public double GetHeuristic(int fromNodeId, int toNodeId)
-    {
-        GridPosition from = this.GetPosition(fromNodeId);
-        GridPosition to = this.GetPosition(toNodeId);
-        int distanceX = Math.Abs(to.X - from.X);
-        int distanceY = Math.Abs(to.Y - from.Y);
-        int diagonalSteps = Math.Min(distanceX, distanceY);
-        int straightSteps = Math.Max(distanceX, distanceY) - diagonalSteps;
-
-        return (diagonalSteps * Math.Sqrt(2)) + straightSteps;
-    }
-
     /// <summary>
     /// Gets the node identifier associated with a position.
     /// </summary>
@@ -84,6 +70,19 @@ internal sealed class MatrixMap : INodeMap, IHeuristicProvider
             throw new ArgumentOutOfRangeException(nameof(position), "The position is outside the grid.");
 
         return (position.Y * this.Width) + position.X;
+    }
+
+    /// <summary>
+    /// Gets the grid position associated with a node identifier.
+    /// </summary>
+    /// <param name="nodeId">The node identifier.</param>
+    /// <returns>The corresponding grid position.</returns>
+    public GridPosition GetPosition(int nodeId)
+    {
+        if (nodeId < 0 || nodeId >= this.Width * this.Height)
+            throw new ArgumentOutOfRangeException(nameof(nodeId), "The node identifier is outside the grid.");
+
+        return new GridPosition(nodeId % this.Width, nodeId / this.Width);
     }
 
     /// <summary>
@@ -154,16 +153,6 @@ internal sealed class MatrixMap : INodeMap, IHeuristicProvider
                 yield return new PathConnection(destinationId, cost);
             }
         }
-    }
-
-    /// <summary>
-    /// Gets the position associated with a node identifier.
-    /// </summary>
-    /// <param name="id">The node identifier.</param>
-    /// <returns>The corresponding grid position.</returns>
-    private GridPosition GetPosition(int id)
-    {
-        return new GridPosition(id % this.Width, id / this.Width);
     }
 
     /// <summary>

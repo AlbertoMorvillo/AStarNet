@@ -104,6 +104,7 @@ public sealed class Path : IEquatable<Path>
     /// <returns>The concatenated path.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">The destination of this path does not match the start of <paramref name="other"/>.</exception>
+    /// <exception cref="InvalidOperationException">The combined accumulated cost is not finite.</exception>
     public Path Concat(Path other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -118,6 +119,7 @@ public sealed class Path : IEquatable<Path>
     /// <returns>The concatenated path, or an empty path when no non-empty paths are supplied.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/> or contains a null path.</exception>
     /// <exception cref="ArgumentException">Two consecutive paths are not connected.</exception>
+    /// <exception cref="InvalidOperationException">The combined accumulated cost is not finite.</exception>
     public static Path Concat(params Path[] paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
@@ -132,6 +134,7 @@ public sealed class Path : IEquatable<Path>
     /// <returns>The concatenated path, or an empty path when the sequence has no non-empty paths.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/> or contains a null path.</exception>
     /// <exception cref="ArgumentException">Two consecutive paths are not connected.</exception>
+    /// <exception cref="InvalidOperationException">The combined accumulated cost is not finite.</exception>
     public static Path Concat(IEnumerable<Path> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);

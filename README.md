@@ -26,6 +26,7 @@ AStar.net is an open-source .NET 10 library for calculating paths with the A* al
 - Integer node identifiers, leaving application data under provider control.
 - Directed connections with independent, non-negative traversal costs.
 - Custom heuristic providers, with Dijkstra's algorithm used by default.
+- Optional tie-breaker providers for ordering candidates with equal A* scores.
 - Immutable path results with per-step and accumulated costs.
 - Safe concurrent searches when the configured providers support concurrent reads.
 
@@ -41,6 +42,7 @@ Implement `INodeMap` and optionally `IHeuristicProvider`:
 
 ```csharp
 using AStarNet;
+using AStarNet.Heuristics;
 using AStarNet.Maps;
 using System.Collections.Generic;
 using System.Linq;
@@ -102,10 +104,28 @@ with `Path.Concat`.
 
 ## Heuristics and optimality
 
-Without an `IHeuristicProvider`, AStar.net uses a zero heuristic and behaves like Dijkstra's algorithm. A custom
-heuristic must be admissible—never greater than the actual minimum remaining cost—to preserve the optimality guarantee.
+Without an `IHeuristicProvider`, AStar.net uses zero for every estimate and behaves like Dijkstra's algorithm. A
+custom heuristic must be admissible—never greater than the actual minimum remaining cost—to preserve the optimality
+guarantee.
 
 Heuristic values must be finite and non-negative. Invalid values cause `FindPath` to throw `InvalidOperationException`.
+
+`HeuristicMath` provides allocation-free Manhattan, Euclidean, and diagonal-distance calculations for two- and
+three-dimensional providers:
+
+```csharp
+return HeuristicMath.Octile(
+    destination.X - current.X,
+    destination.Y - current.Y);
+```
+
+An optional `ITieBreakerProvider` can order candidate nodes whose A* scores are equal and choose between equal-cost
+parent alternatives. It cannot override a score or path-cost difference, so it does not change which total path cost
+is considered optimal.
+
+`TieBreakerMath` provides squared line-deviation calculations in two and three dimensions. These scores avoid square
+roots and divisions; when candidates use the same endpoints, lower values identify candidates closer to the endpoint
+line.
 
 ## Cancellation
 
@@ -119,7 +139,7 @@ Path path = pathFinder.FindPath(0, 2, cancellationSource.Token);
 ## Thread safety
 
 `PathFinder` keeps all mutable search state inside each `FindPath` invocation. The same instance can therefore serve
-concurrent callers when its `INodeMap` and `IHeuristicProvider` implementations are also safe for concurrent use.
+concurrent callers when its configured map, heuristic, and tie-breaker providers are also safe for concurrent use.
 
 ## Console demo
 
@@ -133,6 +153,7 @@ Use the arrow keys to move the marker and follow the controls displayed beside t
 
 ## Links
 
+- [Documentation wiki](https://github.com/AlbertoMorvillo/AStarNet/wiki)
 - [NuGet package](https://www.nuget.org/packages/AStar.net)
 - [License](LICENSE)
 

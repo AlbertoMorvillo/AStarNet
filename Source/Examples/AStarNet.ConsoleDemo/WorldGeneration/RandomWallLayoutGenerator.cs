@@ -1,4 +1,6 @@
-namespace AStarNet.ConsoleDemo.PathFinding;
+using AStarNet.ConsoleDemo.PathFinding;
+
+namespace AStarNet.ConsoleDemo.WorldGeneration;
 
 /// <summary>
 /// Generates connected wall segments for the demonstration grid.

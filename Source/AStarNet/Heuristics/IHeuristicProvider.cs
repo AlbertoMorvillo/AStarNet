@@ -9,6 +9,8 @@ namespace AStarNet.Heuristics;
 /// To preserve the optimality guarantee of A*, estimates must be admissible for the node map: an estimate must never
 /// exceed the actual minimum cost of reaching the destination. Admissibility depends on the graph and its traversal
 /// costs and therefore cannot be validated by the pathfinder.
+/// The provider's strategy must remain stable for the duration of each path search. Mutable implementations are
+/// responsible for coordinating changes with active and concurrent searches.
 /// </remarks>
 public interface IHeuristicProvider
 {

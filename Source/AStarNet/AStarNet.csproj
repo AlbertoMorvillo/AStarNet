@@ -34,6 +34,9 @@
     - Path step collections are now immutable
     - Removed multi-path search to focus the API on the least-cost path produced by A*
     - Left application content under the ownership of node-map providers
+    - Added Dijkstra behavior when no heuristic provider is supplied
+    - Added optional tie-breaker providers for equal-score candidates and equal-cost parent alternatives
+    - Added built-in 2D and 3D heuristic and line-deviation calculations
     - Removed obsolete types and members
     - Performance optimizations</PackageReleaseNotes>
     <Copyright>Copyright © 2026 Alberto Morvillo</Copyright>

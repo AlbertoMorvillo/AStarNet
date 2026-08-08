@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Text;
 using AStarNet.ConsoleDemo.PathFinding;
+using AStarNet.ConsoleDemo.PathFinding.Heuristics;
+using AStarNet.ConsoleDemo.PathFinding.TieBreakers;
 using AStarNet.ConsoleDemo.UI;
+using AStarNet.ConsoleDemo.WorldGeneration;
 
 namespace AStarNet.ConsoleDemo;
 
@@ -10,30 +13,50 @@ namespace AStarNet.ConsoleDemo;
 /// </summary>
 internal sealed class ConsoleDemoApplication
 {
+    #region Constants
+
     private const int GridWidth = 22;
     private const int GridHeight = 22;
     private const int DefaultWallSeed = 2026;
+
+    #endregion
+
+    #region Fields
+
     private readonly MatrixMap _map;
-    private readonly PathFinder _pathFinder;
+    // Parallel arrays keep the pathfinding setup and displayed measurements explicit in this demo.
+    private readonly PathFinder[] _pathFinders;
+    private readonly GridPathfindingMode[] _pathfindingModes;
+    private readonly Path?[] _pathfindingResults;
+    private readonly TimeSpan[] _pathfindingElapsedTimes;
     private readonly ConsoleRenderer _renderer;
 
     private GridPosition? _start;
     private GridPosition? _destination;
     private Path? _path;
+    private int _selectedPathfindingModeIndex;
     private int _wallSeed;
     private bool _isWallLayoutModified;
     private string _statusMessage;
     private ConsoleColor _statusColor;
+
+    #endregion
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConsoleDemoApplication"/> class.
     /// </summary>
     public ConsoleDemoApplication()
     {
-        this._map = new MatrixMap(GridWidth, GridHeight);
-        this._pathFinder = new PathFinder(
-            nodeMap: this._map,
-            heuristicProvider: this._map);
+        (MatrixMap map, PathFinder[] pathFinders, GridPathfindingMode[] modes) =
+            ConsoleDemoApplication.CreatePathfinding();
+
+        this._map = map;
+        this._pathFinders = pathFinders;
+        this._pathfindingModes = modes;
+        this._pathfindingResults = new Path?[this._pathfindingModes.Length];
+        this._pathfindingElapsedTimes = new TimeSpan[this._pathfindingModes.Length];
         this._renderer = new ConsoleRenderer(this._map);
         this._wallSeed = DefaultWallSeed;
         this._statusMessage = "Choose a start and destination, then press Enter.";
@@ -41,6 +64,20 @@ internal sealed class ConsoleDemoApplication
 
         RandomWallLayoutGenerator.Generate(this._map, DefaultWallSeed);
     }
+
+    #endregion
+
+    #region Properties
+
+    /// <summary>
+    /// Gets the currently selected pathfinding mode.
+    /// </summary>
+    private GridPathfindingMode SelectedPathfindingMode =>
+        this._pathfindingModes[this._selectedPathfindingModeIndex];
+
+    #endregion
+
+    #region Public methods
 
     /// <summary>
     /// Runs the interactive demo until the user presses Escape.
@@ -84,6 +121,10 @@ internal sealed class ConsoleDemoApplication
         }
     }
 
+    #endregion
+
+    #region Private methods - Input
+
     /// <summary>
     /// Handles a single input key.
     /// </summary>
@@ -113,7 +154,11 @@ internal sealed class ConsoleDemoApplication
                 break;
 
             case ConsoleKey.Enter:
-                this.FindPath();
+                this.CalculatePaths();
+                break;
+
+            case ConsoleKey.H:
+                this.SelectNextPathfindingMode();
                 break;
 
             case ConsoleKey.Backspace:
@@ -130,6 +175,10 @@ internal sealed class ConsoleDemoApplication
                 break;
         }
     }
+
+    #endregion
+
+    #region Private methods - Map editing
 
     /// <summary>
     /// Sets or removes the start at the current marker position.
@@ -150,7 +199,7 @@ internal sealed class ConsoleDemoApplication
             this.SetStatus("Start removed.", ConsoleColor.Gray);
         }
 
-        this.InvalidatePath();
+        this.InvalidateSearchResults();
     }
 
     /// <summary>
@@ -172,7 +221,7 @@ internal sealed class ConsoleDemoApplication
             this.SetStatus("Destination removed.", ConsoleColor.Gray);
         }
 
-        this.InvalidatePath();
+        this.InvalidateSearchResults();
     }
 
     /// <summary>
@@ -191,14 +240,55 @@ internal sealed class ConsoleDemoApplication
         bool isWall = !this._map.IsWall(marker);
         this._map.SetWall(marker, isWall);
         this._isWallLayoutModified = true;
-        this.InvalidatePath();
+        this.InvalidateSearchResults();
         this.SetStatus(isWall ? "Wall added." : "Wall removed.", ConsoleColor.Gray);
     }
 
+    #endregion
+
+    #region Private methods - Pathfinding
+
     /// <summary>
-    /// Finds and displays a path between the selected endpoints.
+    /// Creates the demonstration map and one pathfinder for each pathfinding mode being compared.
     /// </summary>
-    private void FindPath()
+    /// <returns>The map, pathfinders, and modes used by the demo.</returns>
+    private static (MatrixMap Map, PathFinder[] PathFinders, GridPathfindingMode[] Modes) CreatePathfinding()
+    {
+        MatrixMap map = new(GridWidth, GridHeight);
+        GridHeuristic octileHeuristic = new(map, GridHeuristicKind.Octile);
+        GridHeuristic euclideanHeuristic = new(map, GridHeuristicKind.Euclidean);
+        GridHeuristic manhattanHeuristic = new(map, GridHeuristicKind.Manhattan);
+        LineDeviationTieBreaker lineDeviationTieBreaker = new(map);
+
+        // Each PathFinder is permanently associated with its map and optional providers.
+        PathFinder[] pathFinders =
+        [
+            new PathFinder(map),
+            new PathFinder(map, tieBreakerProvider: lineDeviationTieBreaker),
+            new PathFinder(map, octileHeuristic),
+            new PathFinder(map, octileHeuristic, lineDeviationTieBreaker),
+            new PathFinder(map, euclideanHeuristic),
+            new PathFinder(map, euclideanHeuristic, lineDeviationTieBreaker),
+            new PathFinder(map, manhattanHeuristic)
+        ];
+        GridPathfindingMode[] modes =
+        [
+            GridPathfindingMode.Dijkstra,
+            GridPathfindingMode.DijkstraWithLineTieBreaker,
+            GridPathfindingMode.Octile,
+            GridPathfindingMode.OctileWithLineTieBreaker,
+            GridPathfindingMode.Euclidean,
+            GridPathfindingMode.EuclideanWithLineTieBreaker,
+            GridPathfindingMode.Manhattan
+        ];
+
+        return (map, pathFinders, modes);
+    }
+
+    /// <summary>
+    /// Calculates a path for every mode and displays the result of the selected mode.
+    /// </summary>
+    private void CalculatePaths()
     {
         if (!this._start.HasValue || !this._destination.HasValue)
         {
@@ -208,27 +298,70 @@ internal sealed class ConsoleDemoApplication
 
         int startId = this._map.GetNodeId(this._start.Value);
         int destinationId = this._map.GetNodeId(this._destination.Value);
-        long startTimestamp = Stopwatch.GetTimestamp();
 
-        this._path = this._pathFinder.FindPath(
-            startNodeId: startId,
-            destinationNodeId: destinationId);
+        for (int index = 0; index < this._pathfindingModes.Length; index++)
+        {
+            long startTimestamp = Stopwatch.GetTimestamp();
+            Path path = this._pathFinders[index].FindPath(
+                startNodeId: startId,
+                destinationNodeId: destinationId);
 
-        TimeSpan elapsed = Stopwatch.GetElapsedTime(startTimestamp);
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(startTimestamp);
+
+            this._pathfindingResults[index] = path;
+            this._pathfindingElapsedTimes[index] = elapsed;
+        }
+
+        this.ShowSelectedPathfindingResult();
+    }
+
+    /// <summary>
+    /// Selects the next pathfinding mode and displays its recorded result when available.
+    /// </summary>
+    private void SelectNextPathfindingMode()
+    {
+        this._selectedPathfindingModeIndex =
+            (this._selectedPathfindingModeIndex + 1) % this._pathfindingModes.Length;
+
+        if (this._pathfindingResults[this._selectedPathfindingModeIndex] is not null)
+        {
+            this.ShowSelectedPathfindingResult();
+            return;
+        }
+
+        this._path = null;
+        this.SetStatus(
+            $"Mode selected: {this.SelectedPathfindingMode.GetDisplayName()}. Press Enter to calculate.",
+            ConsoleColor.Gray);
+    }
+
+    /// <summary>
+    /// Displays the path and timing recorded for the currently selected pathfinding mode.
+    /// </summary>
+    private void ShowSelectedPathfindingResult()
+    {
+        this._path = this._pathfindingResults[this._selectedPathfindingModeIndex]
+            ?? throw new InvalidOperationException("The selected pathfinding mode has not been executed.");
+        TimeSpan elapsed = this._pathfindingElapsedTimes[this._selectedPathfindingModeIndex];
+        string modeName = this.SelectedPathfindingMode.GetDisplayName();
 
         if (this._path.IsEmpty)
         {
             this.SetStatus(
-                $"No path found ({elapsed.TotalMilliseconds:0.###} ms).",
+                $"Last generated: {modeName} | no path | {elapsed.TotalMilliseconds:0.###} ms",
                 ConsoleColor.Yellow);
             return;
         }
 
         this.SetStatus(
-            $"Path found: {this._path.Steps.Length} nodes, cost {this._path.Cost:0.###} " +
-            $"({elapsed.TotalMilliseconds:0.###} ms).",
+            $"Last generated: {modeName} | {this._path.Steps.Length} nodes | " +
+            $"cost {this._path.Cost:0.###} | {elapsed.TotalMilliseconds:0.###} ms",
             ConsoleColor.Cyan);
     }
+
+    #endregion
+
+    #region Private methods - World generation
 
     /// <summary>
     /// Requests a seed and replaces the current map with a generated wall layout.
@@ -243,8 +376,8 @@ internal sealed class ConsoleDemoApplication
         this._map.ClearWalls();
         this._start = null;
         this._destination = null;
-        this._path = null;
         RandomWallLayoutGenerator.Generate(this._map, seed.Value);
+        this.InvalidateSearchResults();
         this._wallSeed = seed.Value;
         this._isWallLayoutModified = false;
         this.SetStatus($"Map generated with seed {seed.Value}.", ConsoleColor.Cyan);
@@ -340,17 +473,24 @@ internal sealed class ConsoleDemoApplication
         this._map.ClearWalls();
         this._start = null;
         this._destination = null;
-        this._path = null;
+        this.InvalidateSearchResults();
         this._isWallLayoutModified = true;
         this.SetStatus("Map cleared.", ConsoleColor.Gray);
     }
 
+    #endregion
+
+    #region Private methods - Rendering and state
+
     /// <summary>
-    /// Removes a path that no longer represents the current map or endpoints.
+    /// Removes paths and statistics that no longer represent the current map or endpoints.
     /// </summary>
-    private void InvalidatePath()
+    private void InvalidateSearchResults()
     {
         this._path = null;
+
+        Array.Clear(this._pathfindingResults);
+        Array.Clear(this._pathfindingElapsedTimes);
     }
 
     /// <summary>
@@ -386,6 +526,10 @@ internal sealed class ConsoleDemoApplication
             this._start,
             this._destination,
             this._path,
+            this._pathfindingModes,
+            this._pathfindingResults,
+            this._pathfindingElapsedTimes,
+            this._selectedPathfindingModeIndex,
             this._wallSeed,
             this._isWallLayoutModified,
             this._statusMessage,
@@ -408,4 +552,5 @@ internal sealed class ConsoleDemoApplication
         return false;
     }
 
+    #endregion
 }

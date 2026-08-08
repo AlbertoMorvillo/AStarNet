@@ -3,7 +3,8 @@
 AStar.net is a lightweight .NET 10 implementation of the A* pathfinding algorithm.
 
 It provides integer node identifiers, directed weighted connections, cooperative cancellation, immutable path results,
-and optional custom heuristics. Without a custom heuristic, searches behave like Dijkstra's algorithm.
+optional custom heuristics, and optional candidate tie-breaking. Without a custom heuristic, every estimate is zero and
+searches behave like Dijkstra's algorithm.
 
 ## Installation
 
@@ -26,6 +27,15 @@ sequence of `PathStep` values.
 
 Custom heuristics must return finite, non-negative estimates and must never overestimate the actual minimum remaining
 cost when an optimal result is required.
+
+`HeuristicMath` provides Manhattan, Euclidean, octile, and three-dimensional diagonal calculations without requiring
+the library to know how node identifiers map to coordinates.
+
+An optional `ITieBreakerProvider` can order candidate nodes with equal A* scores and choose between equal-cost parent
+alternatives without overriding the cost-based ordering.
+
+`TieBreakerMath` provides squared line-deviation calculations for two- and three-dimensional tie-breakers. Scores can
+be compared directly when candidates are measured against the same endpoints.
 
 ## Documentation and examples
 

@@ -14,6 +14,8 @@ Before making changes, inspect the existing project structure, architecture, and
 - Do not add or update external NuGet packages unless explicitly requested.
 - Do not modify generated files.
 - Do not delete or rename public types or members unless explicitly requested.
+- Do not use `InternalsVisibleTo` or otherwise expose internal implementation details to test or external assemblies.
+- Test only the public API. If behavior cannot be tested without accessing internal members, omit that test.
 - Prefer small, focused changes over large refactors.
 - Avoid unrelated cleanup or refactoring.
 
@@ -41,6 +43,8 @@ Before making changes, inspect the existing project structure, architecture, and
 - Do not use `var` for primitive types or other simple types.
 - Use concrete types for local variables unless an interface is necessary for the implementation. Prefer interfaces at
   API boundaries, such as public signatures and properties, where abstraction provides a meaningful benefit.
+- Prefer tuple deconstruction when tuple elements are immediately consumed as separate values. Keep a named tuple
+  variable when the tuple itself is passed around or treated as a single value.
 
 - Before changing an existing type between `class`, `record class`, `struct`, or `record struct`, explain the reason and ask for explicit confirmation.
 - Do not use primary constructors.

@@ -15,6 +15,19 @@ public sealed class PathFinderTests
     }
 
     /// <summary>
+    /// Verifies that omitted optional providers remain absent.
+    /// </summary>
+    [Fact]
+    public void Constructor_WhenOptionalProvidersAreOmitted_StoresNullProviders()
+    {
+        TestGraph graph = new([0]);
+        PathFinder pathFinder = new(graph);
+
+        Assert.Null(pathFinder.HeuristicProvider);
+        Assert.Null(pathFinder.TieBreakerProvider);
+    }
+
+    /// <summary>
     /// Verifies that a later cheaper route replaces an earlier expensive route.
     /// </summary>
     [Fact]
@@ -99,6 +112,99 @@ public sealed class PathFinderTests
 
         Assert.Equal([0, 1, 3], path.Steps.Select(step => step.NodeId));
         Assert.Equal(4, path.Cost);
+    }
+
+    /// <summary>
+    /// Verifies that a tie-breaker selects between candidates with equal A* scores.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenCandidateScoresAreEqual_UsesTieBreakerProvider()
+    {
+        TestGraph graph = new(
+            [0, 1, 2, 3],
+            (0, 1, 1),
+            (0, 2, 1),
+            (1, 3, 1),
+            (2, 3, 1));
+        DelegateTieBreaker tieBreaker = new(
+            (startNodeId, destinationNodeId, leftCandidateNodeId, rightCandidateNodeId) =>
+            {
+                Assert.Equal(0, startNodeId);
+                Assert.Equal(3, destinationNodeId);
+                return rightCandidateNodeId.CompareTo(leftCandidateNodeId);
+            });
+        PathFinder pathFinder = new(graph, tieBreakerProvider: tieBreaker);
+
+        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 2, 3], path.Steps.Select(step => step.NodeId));
+    }
+
+    /// <summary>
+    /// Verifies that the tie-breaker is not invoked for candidates with different A* scores.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenCandidateScoresDiffer_DoesNotUseTieBreakerProvider()
+    {
+        TestGraph graph = new([0, 1, 2], (0, 1, 1), (0, 2, 2));
+        DelegateTieBreaker tieBreaker = new(
+            (_, _, _, _) => throw new InvalidOperationException("The tie-breaker was invoked."));
+        PathFinder pathFinder = new(graph, tieBreakerProvider: tieBreaker);
+
+        Path path = pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 1], path.Steps.Select(step => step.NodeId));
+    }
+
+    /// <summary>
+    /// Verifies that equal-cost parent replacement cannot create a reconstruction cycle.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenTieBreakerPrefersAZeroCostCycle_PreservesAcyclicParents()
+    {
+        TestGraph graph = new(
+            [0, 1, 2, 3],
+            (0, 1, 0),
+            (1, 2, 0),
+            (2, 1, 0),
+            (2, 3, 1));
+        DelegateTieBreaker tieBreaker = new((_, _, _, _) => -1);
+        PathFinder pathFinder = new(graph, tieBreakerProvider: tieBreaker);
+
+        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 1, 2, 3], path.Steps.Select(step => step.NodeId));
+        Assert.Equal(1, path.Cost);
+    }
+
+    /// <summary>
+    /// Verifies that equal-score work continues after the destination is first dequeued.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenDestinationIsDequeuedWithinATiedPlateau_ResolvesEqualCostParent()
+    {
+        TestGraph graph = new(
+            [0, 1, 2, 3],
+            (0, 1, 1),
+            (0, 2, 1),
+            (1, 3, 1),
+            (2, 3, 1));
+        DelegateHeuristic heuristic = new(
+            (fromNodeId, _) => fromNodeId switch
+            {
+                0 => 2,
+                1 => 0.5,
+                2 => 1,
+                _ => 0
+            });
+        DelegateTieBreaker tieBreaker = new(
+            (_, _, leftCandidateNodeId, rightCandidateNodeId) =>
+                rightCandidateNodeId.CompareTo(leftCandidateNodeId));
+        PathFinder pathFinder = new(graph, heuristic, tieBreaker);
+
+        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 2, 3], path.Steps.Select(step => step.NodeId));
     }
 
     /// <summary>
