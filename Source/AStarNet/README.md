@@ -42,6 +42,9 @@ be compared directly when candidates are measured against the same endpoints.
 For the complete `INodeMap` contract, usage examples, cancellation, thread-safety guidance, and the interactive console
 demo, visit the [AStar.net GitHub repository](https://github.com/AlbertoMorvillo/AStarNet).
 
+Version history and release notes are available on the
+[GitHub Releases page](https://github.com/AlbertoMorvillo/AStarNet/releases).
+
 ## License
 
 AStar.net is distributed under the MIT license.

@@ -1,0 +1,30 @@
+name: Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate solution
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore Source/AStarNet.sln
+
+      - name: Build solution
+        run: dotnet build Source/AStarNet.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test Source/AStarNet.sln --configuration Release --no-build --no-restore
