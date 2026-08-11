@@ -22,9 +22,11 @@ Before making changes, inspect the existing project structure, architecture, and
 ## Code style
 
 - Use file-scoped namespaces.
+- Place each top-level class, struct, record, interface, enum, or delegate in its own file. Nested types may remain in
+  the file of their containing type.
 - Respect the project's existing nullable reference type configuration.
 - Use explicit and descriptive names.
-- Write code comments and XML documentation in English.
+- Write code comments, XML documentation, and wiki content in clear, neutral English.
 - Use imperative or neutral wording in comments.
 - Add XML documentation to all classes, structs, enums, properties, constructors, and methods.
 - Avoid comments that merely repeat what the code already expresses.
