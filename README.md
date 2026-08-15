@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/AlbertoMorvillo/AStarNet" alt="License"></a>
   <img src="https://img.shields.io/badge/.NET-10-512BD4" alt=".NET 10">
   <a href="https://www.nuget.org/packages/AStar.net"><img src="https://img.shields.io/nuget/v/AStar.net" alt="NuGet version"></a>
   <a href="https://www.nuget.org/packages/AStar.net"><img src="https://img.shields.io/nuget/dt/AStar.net" alt="NuGet downloads"></a>
   <a href="https://github.com/AlbertoMorvillo/AStarNet/actions/workflows/validation.yml"><img src="https://github.com/AlbertoMorvillo/AStarNet/actions/workflows/validation.yml/badge.svg" alt="Validation"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/AlbertoMorvillo/AStarNet" alt="License"></a>
 </p>
 
 # AStar.net
@@ -17,6 +17,7 @@ AStar.net is an open-source .NET 10 library for calculating paths with the A* al
 ## Key features
 
 - Lightweight and map-topology agnostic.
+- No external NuGet package dependencies.
 - Synchronous pathfinding with cooperative cancellation.
 - Integer node identifiers, leaving application data under provider control.
 - Directed connections with independent, non-negative traversal costs.
