@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AStarNet\AStarNet.csproj" />
+    <ProjectReference Include="..\..\src\AStarNet\AStarNet.csproj" />
   </ItemGroup>
 
 </Project>

@@ -15,7 +15,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>AStarIcon_128.png</PackageIcon>
+    <PackageIcon>AStarLogo_128.png</PackageIcon>
     <VersionPrefix>2.0.0</VersionPrefix>
     <PackageVersion>$(VersionPrefix)</PackageVersion>
     <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
@@ -44,7 +44,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Update="AStarIcon_128.png">
+    <None Include="..\..\assets\branding\logo\AStarLogo_128.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Assets/Images/Raster/AStarBanner.png" alt="AStar.net" width="640">
+  <img src="assets/branding/banner/AStarBanner.png" alt="AStar.net" width="640">
 </p>
 
 <p align="center">
@@ -142,7 +142,7 @@ concurrent callers when its configured map, heuristic, and tie-breaker providers
 The repository includes an interactive grid demo:
 
 ```bash
-dotnet run --project Source/Examples/AStarNet.ConsoleDemo/AStarNet.ConsoleDemo.csproj
+dotnet run --project samples/AStarNet.ConsoleDemo/AStarNet.ConsoleDemo.csproj
 ```
 
 Use the arrow keys to move the marker and follow the controls displayed beside the grid.
