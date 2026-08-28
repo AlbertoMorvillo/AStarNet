@@ -7,6 +7,7 @@ namespace AStarNet.ConsoleDemo.PathFinding;
 /// </summary>
 internal sealed class MatrixMap : INodeMap
 {
+    private readonly int _nodeCount;
     private readonly bool[,] _walls;
     private int _wallCount;
 
@@ -19,10 +20,11 @@ internal sealed class MatrixMap : INodeMap
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-        _ = checked(width * height);
+        int nodeCount = checked(width * height);
 
         this.Width = width;
         this.Height = height;
+        this._nodeCount = nodeCount;
         this._walls = new bool[width, height];
     }
 
@@ -44,19 +46,16 @@ internal sealed class MatrixMap : INodeMap
     /// <inheritdoc/>
     public bool ContainsNode(int nodeId)
     {
-        if (nodeId < 0 || nodeId >= this.Width * this.Height)
-            return false;
-
-        return !this.IsWall(this.GetPosition(nodeId));
+        return this.TryGetTraversablePosition(nodeId, out _, out _);
     }
 
     /// <inheritdoc/>
     public IEnumerable<PathConnection>? GetConnections(int nodeId)
     {
-        if (!this.ContainsNode(nodeId))
+        if (!this.TryGetTraversablePosition(nodeId, out int originX, out int originY))
             return null;
 
-        return this.EnumerateConnections(nodeId);
+        return this.EnumerateConnections(originX, originY);
     }
 
     /// <summary>
@@ -79,7 +78,7 @@ internal sealed class MatrixMap : INodeMap
     /// <returns>The corresponding grid position.</returns>
     public GridPosition GetPosition(int nodeId)
     {
-        if (nodeId < 0 || nodeId >= this.Width * this.Height)
+        if (nodeId < 0 || nodeId >= this._nodeCount)
             throw new ArgumentOutOfRangeException(nameof(nodeId), "The node identifier is outside the grid.");
 
         return new GridPosition(nodeId % this.Width, nodeId / this.Width);
@@ -130,12 +129,11 @@ internal sealed class MatrixMap : INodeMap
     /// <summary>
     /// Enumerates the outgoing connections of an existing node.
     /// </summary>
-    /// <param name="nodeId">The existing node identifier.</param>
+    /// <param name="originX">The X coordinate of the existing node.</param>
+    /// <param name="originY">The Y coordinate of the existing node.</param>
     /// <returns>The outgoing connections.</returns>
-    private IEnumerable<PathConnection> EnumerateConnections(int nodeId)
+    private IEnumerable<PathConnection> EnumerateConnections(int originX, int originY)
     {
-        GridPosition origin = this.GetPosition(nodeId);
-
         for (int deltaX = -1; deltaX <= 1; deltaX++)
         {
             for (int deltaY = -1; deltaY <= 1; deltaY++)
@@ -143,16 +141,45 @@ internal sealed class MatrixMap : INodeMap
                 if (deltaX == 0 && deltaY == 0)
                     continue;
 
-                GridPosition destination = new(origin.X + deltaX, origin.Y + deltaY);
-                if (!this.IsInside(destination) || this.IsWall(destination))
+                int destinationX = originX + deltaX;
+                int destinationY = originY + deltaY;
+
+                if (destinationX < 0 ||
+                    destinationX >= this.Width ||
+                    destinationY < 0 ||
+                    destinationY >= this.Height ||
+                    this._walls[destinationX, destinationY])
+                {
                     continue;
+                }
 
                 bool isDiagonal = deltaX != 0 && deltaY != 0;
                 double cost = isDiagonal ? Math.Sqrt(2) : 1;
-                int destinationId = this.GetNodeId(destination);
+                int destinationId = (destinationY * this.Width) + destinationX;
                 yield return new PathConnection(destinationId, cost);
             }
         }
+    }
+
+    /// <summary>
+    /// Resolves a traversable node identifier to its grid coordinates.
+    /// </summary>
+    /// <param name="nodeId">The node identifier to resolve.</param>
+    /// <param name="x">The resolved X coordinate.</param>
+    /// <param name="y">The resolved Y coordinate.</param>
+    /// <returns><see langword="true"/> when the identifier represents a traversable node; otherwise, <see langword="false"/>.</returns>
+    private bool TryGetTraversablePosition(int nodeId, out int x, out int y)
+    {
+        if (nodeId < 0 || nodeId >= this._nodeCount)
+        {
+            x = 0;
+            y = 0;
+            return false;
+        }
+
+        x = nodeId % this.Width;
+        y = nodeId / this.Width;
+        return !this._walls[x, y];
     }
 
     /// <summary>
