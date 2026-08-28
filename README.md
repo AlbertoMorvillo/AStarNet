@@ -150,6 +150,7 @@ Use the arrow keys to move the marker and follow the controls displayed beside t
 ## Links
 
 - [Documentation wiki](https://github.com/AlbertoMorvillo/AStarNet/wiki)
+- [Architecture and development notes](docs/README.md)
 - [NuGet package](https://www.nuget.org/packages/AStar.net)
 - [Releases](https://github.com/AlbertoMorvillo/AStarNet/releases)
 - [License](LICENSE)

@@ -1,5 +1,4 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35806.99
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -8,6 +7,15 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F4C71F59-0253-45D5-B15F-97EE55D2859F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{F02CEDDE-5FBF-4952-B249-9FB86FAAA618}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{3C3CD582-D327-4C4A-B2A8-51E1E58F567E}"
+	ProjectSection(SolutionItems) = preProject
+		docs\architecture.md = docs\architecture.md
+		docs\design-decisions.md = docs\design-decisions.md
+		docs\development-process.md = docs\development-process.md
+		docs\README.md = docs\README.md
+		docs\release-process.md = docs\release-process.md
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AStarNet.ConsoleDemo", "samples\AStarNet.ConsoleDemo\AStarNet.ConsoleDemo.csproj", "{A8D262BC-3A04-D3BB-F7DE-8526D185AD2D}"
 EndProject
