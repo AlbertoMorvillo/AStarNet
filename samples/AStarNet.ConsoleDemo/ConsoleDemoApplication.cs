@@ -331,7 +331,7 @@ internal sealed class ConsoleDemoApplication
 
         this._path = null;
         this.SetStatus(
-            $"Mode selected: {this.SelectedPathfindingMode.GetDisplayName()}. Press Enter to calculate.",
+            $"Heuristic selected: {this.SelectedPathfindingMode.GetDisplayName()}. Press Enter to calculate.",
             ConsoleColor.Gray);
     }
 
