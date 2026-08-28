@@ -385,7 +385,7 @@ internal sealed class ConsoleRenderer
             WriteLineAt(left, GridTop + 5, "S             Set/remove start", ConsoleColor.Gray);
             WriteLineAt(left, GridTop + 6, "D             Set/remove destination", ConsoleColor.Gray);
             WriteLineAt(left, GridTop + 7, "X or Space    Add/remove wall", ConsoleColor.Gray);
-            WriteLineAt(left, GridTop + 8, "H             Select mode", ConsoleColor.Gray);
+            WriteLineAt(left, GridTop + 8, "H             Select heuristic", ConsoleColor.Gray);
             WriteLineAt(left, GridTop + 9, "Enter         Find paths and statistics", ConsoleColor.Gray);
             WriteLineAt(left, GridTop + 10, "Backspace     Hide path", ConsoleColor.Gray);
             WriteLineAt(left, GridTop + 11, "R             Generate random walls", ConsoleColor.Gray);
