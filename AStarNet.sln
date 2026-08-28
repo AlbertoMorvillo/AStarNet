@@ -3,13 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35806.99
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A58091C8-4134-44B8-A263-3721332789C8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AStarNet.ConsoleDemo", "Examples\AStarNet.ConsoleDemo\AStarNet.ConsoleDemo.csproj", "{A8D262BC-3A04-D3BB-F7DE-8526D185AD2D}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F4C71F59-0253-45D5-B15F-97EE55D2859F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AStarNet", "AStarNet\AStarNet.csproj", "{5F838E06-66FF-48CF-BE4F-3AA606248C05}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{F02CEDDE-5FBF-4952-B249-9FB86FAAA618}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AStarNet.Tests", "Tests\AStarNet.Tests\AStarNet.Tests.csproj", "{61A13281-E59B-4F65-8EA0-68535B39BFD4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AStarNet.ConsoleDemo", "samples\AStarNet.ConsoleDemo\AStarNet.ConsoleDemo.csproj", "{A8D262BC-3A04-D3BB-F7DE-8526D185AD2D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AStarNet", "src\AStarNet\AStarNet.csproj", "{5F838E06-66FF-48CF-BE4F-3AA606248C05}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AStarNet.Tests", "tests\AStarNet.Tests\AStarNet.Tests.csproj", "{61A13281-E59B-4F65-8EA0-68535B39BFD4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,7 +38,9 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{A8D262BC-3A04-D3BB-F7DE-8526D185AD2D} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{5F838E06-66FF-48CF-BE4F-3AA606248C05} = {A58091C8-4134-44B8-A263-3721332789C8}
+		{61A13281-E59B-4F65-8EA0-68535B39BFD4} = {F4C71F59-0253-45D5-B15F-97EE55D2859F}
+		{A8D262BC-3A04-D3BB-F7DE-8526D185AD2D} = {F02CEDDE-5FBF-4952-B249-9FB86FAAA618}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9B6941DC-80F6-48A6-A8A4-647878A3B497}
