@@ -48,6 +48,9 @@ internal sealed class ConsoleRenderer
     private readonly char[,] _renderedSymbols;
     private readonly ConsoleColor[,] _renderedForegroundColors;
 
+    private GridPathfindingMode[] _renderedPathfindingModes = [];
+    private Path?[] _renderedPathfindingResults = [];
+    private TimeSpan[] _renderedPathfindingElapsedTimes = [];
     private bool _gridFrameDrawn;
     private bool _informationDrawn;
     private long _renderedMapVersion = -1;
@@ -58,6 +61,7 @@ internal sealed class ConsoleRenderer
     private bool _renderedWallLayoutModified;
     private string? _renderedStatusMessage;
     private ConsoleColor _renderedStatusColor;
+    private int _renderedSelectedPathfindingModeIndex = -1;
 
     #endregion
 
@@ -437,6 +441,15 @@ internal sealed class ConsoleRenderer
         TimeSpan[] pathfindingElapsedTimes,
         int selectedPathfindingModeIndex)
     {
+        if (!this.HaveStatisticsChanged(
+            pathfindingModes,
+            pathfindingResults,
+            pathfindingElapsedTimes,
+            selectedPathfindingModeIndex))
+        {
+            return;
+        }
+
         int left = this.GetStatisticsLeft();
 
         WriteLineAt(
@@ -479,6 +492,74 @@ internal sealed class ConsoleRenderer
             ConsoleColor.DarkGray,
             StatisticsWidth);
 
+        this.StoreRenderedStatistics(
+            pathfindingModes,
+            pathfindingResults,
+            pathfindingElapsedTimes,
+            selectedPathfindingModeIndex);
+    }
+
+    /// <summary>
+    /// Determines whether the displayed pathfinding statistics have changed.
+    /// </summary>
+    /// <param name="pathfindingModes">The available pathfinding modes.</param>
+    /// <param name="pathfindingResults">The latest path calculated by each mode.</param>
+    /// <param name="pathfindingElapsedTimes">The latest elapsed time recorded for each mode.</param>
+    /// <param name="selectedPathfindingModeIndex">The index of the currently selected mode.</param>
+    /// <returns><see langword="true"/> when the statistics must be redrawn; otherwise, <see langword="false"/>.</returns>
+    private bool HaveStatisticsChanged(
+        GridPathfindingMode[] pathfindingModes,
+        Path?[] pathfindingResults,
+        TimeSpan[] pathfindingElapsedTimes,
+        int selectedPathfindingModeIndex)
+    {
+        if (this._renderedSelectedPathfindingModeIndex != selectedPathfindingModeIndex ||
+            this._renderedPathfindingModes.Length != pathfindingModes.Length ||
+            this._renderedPathfindingResults.Length != pathfindingResults.Length ||
+            this._renderedPathfindingElapsedTimes.Length != pathfindingElapsedTimes.Length)
+        {
+            return true;
+        }
+
+        for (int index = 0; index < pathfindingModes.Length; index++)
+        {
+            if (this._renderedPathfindingModes[index] != pathfindingModes[index] ||
+                !ReferenceEquals(this._renderedPathfindingResults[index], pathfindingResults[index]) ||
+                this._renderedPathfindingElapsedTimes[index] != pathfindingElapsedTimes[index])
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Stores the pathfinding statistics represented by the current console output.
+    /// </summary>
+    /// <param name="pathfindingModes">The displayed pathfinding modes.</param>
+    /// <param name="pathfindingResults">The displayed pathfinding results.</param>
+    /// <param name="pathfindingElapsedTimes">The displayed elapsed times.</param>
+    /// <param name="selectedPathfindingModeIndex">The displayed selected-mode index.</param>
+    private void StoreRenderedStatistics(
+        GridPathfindingMode[] pathfindingModes,
+        Path?[] pathfindingResults,
+        TimeSpan[] pathfindingElapsedTimes,
+        int selectedPathfindingModeIndex)
+    {
+        if (this._renderedPathfindingModes.Length != pathfindingModes.Length)
+            this._renderedPathfindingModes = new GridPathfindingMode[pathfindingModes.Length];
+
+        if (this._renderedPathfindingResults.Length != pathfindingResults.Length)
+            this._renderedPathfindingResults = new Path?[pathfindingResults.Length];
+
+        if (this._renderedPathfindingElapsedTimes.Length != pathfindingElapsedTimes.Length)
+            this._renderedPathfindingElapsedTimes = new TimeSpan[pathfindingElapsedTimes.Length];
+
+        pathfindingModes.CopyTo(this._renderedPathfindingModes, 0);
+        pathfindingResults.CopyTo(this._renderedPathfindingResults, 0);
+        pathfindingElapsedTimes.CopyTo(this._renderedPathfindingElapsedTimes, 0);
+        this._renderedSelectedPathfindingModeIndex = selectedPathfindingModeIndex;
     }
 
     #endregion
