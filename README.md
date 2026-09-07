@@ -125,7 +125,7 @@ line.
 
 ## Cancellation
 
-Long-running searches can be cancelled cooperatively:
+Long-running searches can be canceled cooperatively:
 
 ```csharp
 using CancellationTokenSource cancellationSource = new();

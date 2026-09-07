@@ -164,13 +164,13 @@ publish/
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
-# Note: Comment the next line if you want to checkin your web deploy settings,
+# Note: Comment the next line if you want to check in your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
-# checkin your Azure Web App publish settings, but sensitive information contained
+# check in your Azure Web App publish settings, but sensitive information contained
 # in these scripts will be unencrypted
 PublishScripts/
 
@@ -182,7 +182,7 @@ PublishScripts/
 !**/[Pp]ackages/build/
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
-# NuGet v3's project.json files produces more ignorable files
+# NuGet v3's project.json files produce more ignorable files
 *.nuget.props
 *.nuget.targets
 
