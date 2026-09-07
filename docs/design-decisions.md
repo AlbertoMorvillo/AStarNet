@@ -15,7 +15,7 @@ Applications that use other identifiers can map them to integers in their provid
 
 ## Reusable `PathFinder` Instances
 
-`PathFinder` is an instance because it can retain its map, heuristic, and tie-breaker between searches. Applications
+`PathFinder` uses an instance-based API to retain its map, heuristic, and tie-breaker between searches. Applications
 that want a shared instance can keep one themselves. A static API would instead require the providers to be passed to
 every call.
 
@@ -37,7 +37,7 @@ directions to have different costs and the same node to be reached through conne
 
 AStar.net uses .NET's `PriorityQueue<TElement, TPriority>`. To improve performance, an entry is not removed when a
 better route to the same node is found. An internal state dictionary records the best route currently known and allows
-obsolete queue entries to be recognised and ignored when they are dequeued.
+obsolete queue entries to be recognized and ignored when they are dequeued.
 
 Two custom indexed priority queues were also tested, one based on a binary heap and the other on a quaternary heap.
 Both could locate a queued node and update its priority directly, avoiding obsolete entries. To do so, however, they

@@ -26,7 +26,10 @@ Before making changes, inspect the existing project structure, architecture, and
   the file of their containing type.
 - Respect the project's existing nullable reference type configuration.
 - Use explicit and descriptive names.
-- Write code comments, XML documentation, and wiki content in clear, neutral English.
+- Write all code comments and documentation, including XML documentation, README files, and wiki content, in clear,
+  neutral American English (en-US).
+- Use terminology and spelling consistent with .NET APIs, such as `canceled` (as in `OperationCanceledException`),
+  `recognized`, `behavior`, and `color`.
 - Use imperative or neutral wording in comments.
 - Add XML documentation to all classes, structs, enums, properties, constructors, and methods.
 - Avoid comments that merely repeat what the code already expresses.

@@ -271,7 +271,7 @@ public sealed class Path : IEquatable<Path>
     }
 
     /// <summary>
-    /// Generates the immutable hash code for this path.
+    /// Generates the hash code for this immutable path.
     /// </summary>
     /// <returns>The generated hash code.</returns>
     private int GenerateHashCode()

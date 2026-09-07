@@ -386,7 +386,7 @@ internal sealed class ConsoleDemoApplication
     /// <summary>
     /// Reads a numeric seed, or generates one after two consecutive empty confirmations.
     /// </summary>
-    /// <returns>The selected seed, or <see langword="null"/> when input is cancelled.</returns>
+    /// <returns>The selected seed, or <see langword="null"/> when input is canceled.</returns>
     private int? ReadSeed()
     {
         StringBuilder input = new();
@@ -402,7 +402,7 @@ internal sealed class ConsoleDemoApplication
 
             if (keyInfo.Key == ConsoleKey.Escape)
             {
-                this.SetStatus("Map generation cancelled.", ConsoleColor.Gray);
+                this.SetStatus("Map generation canceled.", ConsoleColor.Gray);
                 return null;
             }
 
@@ -466,7 +466,7 @@ internal sealed class ConsoleDemoApplication
 
         if (confirmation.Key != ConsoleKey.Y)
         {
-            this.SetStatus("Clear cancelled.", ConsoleColor.Gray);
+            this.SetStatus("Clear canceled.", ConsoleColor.Gray);
             return;
         }
 
