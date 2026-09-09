@@ -37,7 +37,7 @@ public sealed class PathTests
     }
 
     /// <summary>
-    /// Verifies that paths with equal steps have equal value semantics.
+    /// Verifies that paths with equal steps compare as equal.
     /// </summary>
     [Fact]
     public void Equality_WhenStepsMatch_ReturnsTrueAndProducesSameHashCode()
@@ -68,7 +68,7 @@ public sealed class PathTests
     }
 
     /// <summary>
-    /// Verifies the null semantics of path equality.
+    /// Verifies path equality comparisons with null.
     /// </summary>
     [Fact]
     public void Equality_WhenOperandsAreNull_FollowsReferenceNullSemantics()
@@ -151,7 +151,7 @@ public sealed class PathTests
     }
 
     /// <summary>
-    /// Verifies that null paths are rejected by every concatenation entry point.
+    /// Verifies that every concatenation overload rejects null paths.
     /// </summary>
     [Fact]
     public void Concat_WhenAnArgumentIsNull_Throws()

@@ -17,8 +17,7 @@ namespace AStarNet;
 /// not ordered explicitly.
 /// Each instance retains the node map and optional providers supplied at construction for its entire lifetime.
 /// Concurrent calls are safe when <see cref="NodeMap"/>, <see cref="HeuristicProvider"/>, and
-/// <see cref="TieBreakerProvider"/> are themselves safe for concurrent use. Each search keeps all mutable state local
-/// to the invocation.
+/// <see cref="TieBreakerProvider"/> are themselves safe for concurrent use. Each call has its own search state.
 /// </remarks>
 public sealed class PathFinder
 {
@@ -118,7 +117,7 @@ public sealed class PathFinder
     #region Private methods
 
     /// <summary>
-    /// Finds a path using the minimal queue representation when no tie-breaker is configured.
+    /// Finds a path without tie-breaking.
     /// </summary>
     /// <param name="startNodeId">The identifier of the validated start node.</param>
     /// <param name="destinationNodeId">The identifier of the validated destination node.</param>
@@ -156,37 +155,113 @@ public sealed class PathFinder
                 ?? throw new InvalidOperationException(
                     $"The node map returned a null connection sequence for node '{currentNodeId}'.");
 
-            foreach (PathConnection connection in connections)
+            if (connections is PathConnection[] arrayConnections)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // Connection destinations belong to the provider's graph and are consumed as declared.
-                int childNodeId = connection.DestinationNodeId;
-                double candidateCost = currentState.CostFromStart + connection.Cost;
-
-                if (!double.IsFinite(candidateCost))
+                foreach (PathConnection connection in arrayConnections)
                 {
-                    throw new InvalidOperationException(
-                        $"The accumulated cost from node '{currentNodeId}' to node '{childNodeId}' is not finite.");
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Connection destinations belong to the provider's graph and are consumed as declared.
+                    int childNodeId = connection.DestinationNodeId;
+                    double candidateCost = currentState.CostFromStart + connection.Cost;
+
+                    if (!double.IsFinite(candidateCost))
+                    {
+                        throw new InvalidOperationException(
+                            $"The accumulated cost from node '{currentNodeId}' to node '{childNodeId}' is not finite.");
+                    }
+
+                    bool hasKnownState = searchStates.TryGetValue(childNodeId, out SearchState knownState);
+
+                    if (hasKnownState && candidateCost >= knownState.CostFromStart)
+                        continue;
+
+                    double heuristicDistance = hasKnownState
+                        ? knownState.Heuristic
+                        : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
+                    double score = candidateCost + heuristicDistance;
+
+                    if (!double.IsFinite(score))
+                        throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
+
+                    SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
+
+                    searchStates[childNodeId] = childState;
+                    openNodeIds.Enqueue(childNodeId, childState.Score);
                 }
+            }
+            else if (connections.GetType() == typeof(List<PathConnection>))
+            {
+                // Preserve custom interface enumeration on derived lists by requiring the exact type.
+                List<PathConnection> listConnections = (List<PathConnection>)connections;
 
-                bool hasKnownState = searchStates.TryGetValue(childNodeId, out SearchState knownState);
+                foreach (PathConnection connection in listConnections)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                if (hasKnownState && candidateCost >= knownState.CostFromStart)
-                    continue;
+                    // Connection destinations belong to the provider's graph and are consumed as declared.
+                    int childNodeId = connection.DestinationNodeId;
+                    double candidateCost = currentState.CostFromStart + connection.Cost;
 
-                double heuristicDistance = hasKnownState
-                    ? knownState.Heuristic
-                    : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
-                double score = candidateCost + heuristicDistance;
+                    if (!double.IsFinite(candidateCost))
+                    {
+                        throw new InvalidOperationException(
+                            $"The accumulated cost from node '{currentNodeId}' to node '{childNodeId}' is not finite.");
+                    }
 
-                if (!double.IsFinite(score))
-                    throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
+                    bool hasKnownState = searchStates.TryGetValue(childNodeId, out SearchState knownState);
 
-                SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
+                    if (hasKnownState && candidateCost >= knownState.CostFromStart)
+                        continue;
 
-                searchStates[childNodeId] = childState;
-                openNodeIds.Enqueue(childNodeId, childState.Score);
+                    double heuristicDistance = hasKnownState
+                        ? knownState.Heuristic
+                        : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
+                    double score = candidateCost + heuristicDistance;
+
+                    if (!double.IsFinite(score))
+                        throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
+
+                    SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
+
+                    searchStates[childNodeId] = childState;
+                    openNodeIds.Enqueue(childNodeId, childState.Score);
+                }
+            }
+            else
+            {
+                foreach (PathConnection connection in connections)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Connection destinations belong to the provider's graph and are consumed as declared.
+                    int childNodeId = connection.DestinationNodeId;
+                    double candidateCost = currentState.CostFromStart + connection.Cost;
+
+                    if (!double.IsFinite(candidateCost))
+                    {
+                        throw new InvalidOperationException(
+                            $"The accumulated cost from node '{currentNodeId}' to node '{childNodeId}' is not finite.");
+                    }
+
+                    bool hasKnownState = searchStates.TryGetValue(childNodeId, out SearchState knownState);
+
+                    if (hasKnownState && candidateCost >= knownState.CostFromStart)
+                        continue;
+
+                    double heuristicDistance = hasKnownState
+                        ? knownState.Heuristic
+                        : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
+                    double score = candidateCost + heuristicDistance;
+
+                    if (!double.IsFinite(score))
+                        throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
+
+                    SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
+
+                    searchStates[childNodeId] = childState;
+                    openNodeIds.Enqueue(childNodeId, childState.Score);
+                }
             }
         }
 
@@ -243,67 +318,203 @@ public sealed class PathFinder
                 ?? throw new InvalidOperationException(
                     $"The node map returned a null connection sequence for node '{currentNodeId}'.");
 
-            foreach (PathConnection connection in connections)
+            if (connections is PathConnection[] arrayConnections)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // Connection destinations belong to the provider's graph and are consumed as declared.
-                int childNodeId = connection.DestinationNodeId;
-                double candidateCost = currentState.CostFromStart + connection.Cost;
-
-                if (!double.IsFinite(candidateCost))
+                foreach (PathConnection connection in arrayConnections)
                 {
-                    throw new InvalidOperationException(
-                        $"The accumulated cost from node '{currentNodeId}' to node '{childNodeId}' is not finite.");
-                }
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                bool hasKnownState = searchStates.TryGetValue(childNodeId, out SearchState knownState);
+                    // Connection destinations belong to the provider's graph and are consumed as declared.
+                    int childNodeId = connection.DestinationNodeId;
+                    double candidateCost = currentState.CostFromStart + connection.Cost;
 
-                if (hasKnownState && candidateCost > knownState.CostFromStart)
-                    continue;
-
-                if (hasKnownState && candidateCost == knownState.CostFromStart)
-                {
-                    // The start state is the only state without a parent and remains canonical through zero-cost cycles.
-                    if (childNodeId == startNodeId)
-                        continue;
-
-                    int knownParentId = knownState.ParentId!.Value;
-                    int parentComparison = tieBreakerProvider.BreakTie(
-                        startNodeId,
-                        destinationNodeId,
-                        currentNodeId,
-                        knownParentId);
-
-                    if (parentComparison >= 0)
-                        continue;
-
-                    if (connection.Cost == 0 &&
-                        PathFinder.WouldCreateParentCycle(childNodeId, currentNodeId, searchStates))
+                    if (!double.IsFinite(candidateCost))
                     {
+                        throw new InvalidOperationException(
+                            $"The accumulated cost from node '{currentNodeId}' to node '{childNodeId}' is not finite.");
+                    }
+
+                    bool hasKnownState = searchStates.TryGetValue(childNodeId, out SearchState knownState);
+
+                    if (hasKnownState && candidateCost > knownState.CostFromStart)
+                        continue;
+
+                    if (hasKnownState && candidateCost == knownState.CostFromStart)
+                    {
+                        // The start state is the only state without a parent and remains canonical through zero-cost cycles.
+                        if (childNodeId == startNodeId)
+                            continue;
+
+                        int knownParentId = knownState.ParentId!.Value;
+                        int parentComparison = tieBreakerProvider.BreakTie(
+                            startNodeId,
+                            destinationNodeId,
+                            currentNodeId,
+                            knownParentId);
+
+                        if (parentComparison >= 0)
+                            continue;
+
+                        if (connection.Cost == 0 &&
+                            PathFinder.WouldCreateParentCycle(childNodeId, currentNodeId, searchStates))
+                        {
+                            continue;
+                        }
+
+                        searchStates[childNodeId] = new SearchState(
+                            currentNodeId,
+                            connection.Cost,
+                            candidateCost,
+                            knownState.Heuristic);
                         continue;
                     }
 
-                    searchStates[childNodeId] = new SearchState(
-                        currentNodeId,
-                        connection.Cost,
-                        candidateCost,
-                        knownState.Heuristic);
-                    continue;
+                    double heuristicDistance = hasKnownState
+                        ? knownState.Heuristic
+                        : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
+                    double score = candidateCost + heuristicDistance;
+
+                    if (!double.IsFinite(score))
+                        throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
+
+                    SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
+
+                    searchStates[childNodeId] = childState;
+                    openNodeIds.Enqueue(childNodeId, new SearchPriority(childNodeId, childState.Score));
                 }
+            }
+            else if (connections.GetType() == typeof(List<PathConnection>))
+            {
+                // Preserve custom interface enumeration on derived lists by requiring the exact type.
+                List<PathConnection> listConnections = (List<PathConnection>)connections;
 
-                double heuristicDistance = hasKnownState
-                    ? knownState.Heuristic
-                    : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
-                double score = candidateCost + heuristicDistance;
+                foreach (PathConnection connection in listConnections)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                if (!double.IsFinite(score))
-                    throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
+                    // Connection destinations belong to the provider's graph and are consumed as declared.
+                    int childNodeId = connection.DestinationNodeId;
+                    double candidateCost = currentState.CostFromStart + connection.Cost;
 
-                SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
+                    if (!double.IsFinite(candidateCost))
+                    {
+                        throw new InvalidOperationException(
+                            $"The accumulated cost from node '{currentNodeId}' to node '{childNodeId}' is not finite.");
+                    }
 
-                searchStates[childNodeId] = childState;
-                openNodeIds.Enqueue(childNodeId, new SearchPriority(childNodeId, childState.Score));
+                    bool hasKnownState = searchStates.TryGetValue(childNodeId, out SearchState knownState);
+
+                    if (hasKnownState && candidateCost > knownState.CostFromStart)
+                        continue;
+
+                    if (hasKnownState && candidateCost == knownState.CostFromStart)
+                    {
+                        // The start state is the only state without a parent and remains canonical through zero-cost cycles.
+                        if (childNodeId == startNodeId)
+                            continue;
+
+                        int knownParentId = knownState.ParentId!.Value;
+                        int parentComparison = tieBreakerProvider.BreakTie(
+                            startNodeId,
+                            destinationNodeId,
+                            currentNodeId,
+                            knownParentId);
+
+                        if (parentComparison >= 0)
+                            continue;
+
+                        if (connection.Cost == 0 &&
+                            PathFinder.WouldCreateParentCycle(childNodeId, currentNodeId, searchStates))
+                        {
+                            continue;
+                        }
+
+                        searchStates[childNodeId] = new SearchState(
+                            currentNodeId,
+                            connection.Cost,
+                            candidateCost,
+                            knownState.Heuristic);
+                        continue;
+                    }
+
+                    double heuristicDistance = hasKnownState
+                        ? knownState.Heuristic
+                        : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
+                    double score = candidateCost + heuristicDistance;
+
+                    if (!double.IsFinite(score))
+                        throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
+
+                    SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
+
+                    searchStates[childNodeId] = childState;
+                    openNodeIds.Enqueue(childNodeId, new SearchPriority(childNodeId, childState.Score));
+                }
+            }
+            else
+            {
+                foreach (PathConnection connection in connections)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Connection destinations belong to the provider's graph and are consumed as declared.
+                    int childNodeId = connection.DestinationNodeId;
+                    double candidateCost = currentState.CostFromStart + connection.Cost;
+
+                    if (!double.IsFinite(candidateCost))
+                    {
+                        throw new InvalidOperationException(
+                            $"The accumulated cost from node '{currentNodeId}' to node '{childNodeId}' is not finite.");
+                    }
+
+                    bool hasKnownState = searchStates.TryGetValue(childNodeId, out SearchState knownState);
+
+                    if (hasKnownState && candidateCost > knownState.CostFromStart)
+                        continue;
+
+                    if (hasKnownState && candidateCost == knownState.CostFromStart)
+                    {
+                        // The start state is the only state without a parent and remains canonical through zero-cost cycles.
+                        if (childNodeId == startNodeId)
+                            continue;
+
+                        int knownParentId = knownState.ParentId!.Value;
+                        int parentComparison = tieBreakerProvider.BreakTie(
+                            startNodeId,
+                            destinationNodeId,
+                            currentNodeId,
+                            knownParentId);
+
+                        if (parentComparison >= 0)
+                            continue;
+
+                        if (connection.Cost == 0 &&
+                            PathFinder.WouldCreateParentCycle(childNodeId, currentNodeId, searchStates))
+                        {
+                            continue;
+                        }
+
+                        searchStates[childNodeId] = new SearchState(
+                            currentNodeId,
+                            connection.Cost,
+                            candidateCost,
+                            knownState.Heuristic);
+                        continue;
+                    }
+
+                    double heuristicDistance = hasKnownState
+                        ? knownState.Heuristic
+                        : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
+                    double score = candidateCost + heuristicDistance;
+
+                    if (!double.IsFinite(score))
+                        throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
+
+                    SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
+
+                    searchStates[childNodeId] = childState;
+                    openNodeIds.Enqueue(childNodeId, new SearchPriority(childNodeId, childState.Score));
+                }
             }
         }
 
@@ -313,7 +524,7 @@ public sealed class PathFinder
     }
 
     /// <summary>
-    /// Determines whether assigning a candidate parent would create a cycle in the path-reconstruction chain.
+    /// Checks whether a proposed parent would create a cycle in the path.
     /// </summary>
     /// <param name="childNodeId">The node whose parent would be replaced.</param>
     /// <param name="candidateParentNodeId">The proposed parent node.</param>
@@ -399,7 +610,7 @@ public sealed class PathFinder
     #region Nested types
 
     /// <summary>
-    /// Compares search priorities and delegates equal-score candidates to the configured tie-breaker provider.
+    /// Compares A* scores and uses the provider to resolve ties.
     /// </summary>
     private sealed class SearchPriorityComparer : IComparer<SearchPriority>
     {

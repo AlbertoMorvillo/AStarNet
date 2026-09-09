@@ -222,7 +222,7 @@ public sealed class Path : IEquatable<Path>
     #region Private methods
 
     /// <summary>
-    /// Adds a traversal cost while preserving the finite path-cost invariant.
+    /// Adds a traversal cost and checks that the total is finite.
     /// </summary>
     /// <param name="accumulatedCost">The accumulated path cost.</param>
     /// <param name="additionalCost">The traversal cost to add.</param>
@@ -239,7 +239,7 @@ public sealed class Path : IEquatable<Path>
     }
 
     /// <summary>
-    /// Validates the structural and numeric invariants of a non-empty path-step sequence.
+    /// Checks that the steps form a non-empty path with consistent costs.
     /// </summary>
     /// <param name="steps">The steps to validate.</param>
     /// <exception cref="ArgumentException">

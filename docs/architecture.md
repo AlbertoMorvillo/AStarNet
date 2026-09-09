@@ -23,10 +23,13 @@ exist and returns the outgoing connections for nodes visited by the search.
 The provider owns the graph representation and any application-specific content. It may use arrays, dictionaries,
 generated data, database-backed data, or another storage model without exposing that choice to AStar.net.
 
-Procedural maps may generate connections on demand and change between searches. During each search, observable
-topology, connections, and costs must remain consistent and stable, including during enumeration. Changing the
-observable graph while the current A* algorithm is running is unsupported and may produce invalid or nonoptimal
-results. Coordinate mutations with active searches or provide a stable snapshot for each search.
+Maps may generate connections on demand and change between searches. During a search, the topology, connections,
+and costs seen by the pathfinder must stay consistent and stable, including during enumeration. Changing them while
+A* is running is unsupported and may produce invalid or nonoptimal results. Wait for active searches to finish
+before making changes, or give each search a stable snapshot.
+
+`GetConnections` returns `IEnumerable<PathConnection>`. The search enumerates arrays and exact `List<PathConnection>`
+instances directly; other types use their own enumerators. It does not copy connections into a collection.
 
 ### `IHeuristicProvider`
 
@@ -38,7 +41,7 @@ pathfinder may cache and reuse estimates; the number and order of `GetHeuristic`
 
 ### `ITieBreakerProvider`
 
-An optional `ITieBreakerProvider` resolves genuine ties between candidates. It can influence which equal-cost path is
+An optional `ITieBreakerProvider` resolves ties between candidates. It can influence which equal-cost path is
 selected, but it cannot override score or path-cost differences.
 
 ### `Path`, `PathStep`, and `PathConnection`
@@ -115,6 +118,5 @@ admissible for that graph. Graph topology returned by the node map is treated as
 
 ## Cancellation
 
-Pathfinding is synchronous and supports cooperative cancellation through `CancellationToken`. The token is checked
-once per main search iteration, providing a cancellation point without adding asynchronous state-machine overhead to a
-CPU-bound operation.
+`FindPath` is synchronous. It checks the `CancellationToken` before provider calls and while processing nodes and
+connections.

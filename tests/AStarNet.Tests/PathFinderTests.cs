@@ -178,7 +178,7 @@ public sealed class PathFinderTests
     }
 
     /// <summary>
-    /// Verifies that equal-score work continues after the destination is first dequeued.
+    /// Verifies that nodes with the same score are processed after the destination is reached.
     /// </summary>
     [Fact]
     public void FindPath_WhenDestinationIsDequeuedWithinATiedPlateau_ResolvesEqualCostParent()
@@ -377,7 +377,7 @@ public sealed class PathFinderTests
     }
 
     /// <summary>
-    /// Verifies that child identifiers declared by the map are not checked through the endpoint-existence operation.
+    /// Verifies that ContainsNode is not called for connection destinations.
     /// </summary>
     [Fact]
     public void FindPath_WhenConnectionsDeclareChildren_ValidatesOnlyRequestedEndpoints()

@@ -1,12 +1,12 @@
 namespace AStarNet.Tests;
 
 /// <summary>
-/// Tests the complete value semantics of path steps.
+/// Tests path-step equality.
 /// </summary>
 public sealed class PathStepTests
 {
     /// <summary>
-    /// Verifies equality when every semantic component matches.
+    /// Verifies equality when all properties match.
     /// </summary>
     [Fact]
     public void Equality_WhenAllComponentsMatch_ReturnsTrue()
@@ -21,7 +21,7 @@ public sealed class PathStepTests
     }
 
     /// <summary>
-    /// Verifies that every semantic component participates in equality.
+    /// Verifies that each property affects equality.
     /// </summary>
     /// <param name="nodeId">The node identifier.</param>
     /// <param name="costFromPrevious">The cost from the previous step.</param>

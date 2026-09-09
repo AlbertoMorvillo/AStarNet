@@ -1,8 +1,6 @@
 # Internal Documentation
 
-This directory documents the architecture, design decisions, development practices, and release process of AStar.net.
-It is intended for maintainers and contributors who need to understand how the project is built and why its internal
-design has taken its current form.
+These pages describe AStar.net's internals and maintenance procedures.
 
 User documentation, examples, and API guidance are available in the
 [AStar.net wiki](https://github.com/AlbertoMorvillo/AStarNet/wiki).

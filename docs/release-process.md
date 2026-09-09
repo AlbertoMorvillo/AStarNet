@@ -33,9 +33,9 @@ dotnet run --project samples/AStarNet.ConsoleDemo/AStarNet.ConsoleDemo.csproj --
 ## 3. Merge and Validate the Release Commit
 
 Merge `develop` into `master` through a pull request. Run the manual GitHub Validation workflow against the final
-commit on `master` when an independent clean-environment check is desired.
+commit on `master` to check it in a clean environment.
 
-The Validation workflow performs restore, build, and test. It intentionally produces no package artifact.
+The Validation workflow restores, builds, and tests the solution without generating a package.
 
 ## 4. Generate the NuGet Package
 
@@ -60,8 +60,7 @@ or unrelated repository assets.
 Upload the inspected package manually through NuGet.org or another explicitly chosen NuGet publication method. Verify
 the package ID, version, dependencies, README, icon, and release notes in the preview before confirming publication.
 
-Published NuGet versions are immutable. Never attempt to replace an existing version with a differently generated
-package. Correct package content under a new semantic version when a published artifact requires a change.
+Published NuGet versions cannot be replaced. Publish a new version if a released package needs a correction.
 
 ## 6. Publish Documentation
 
