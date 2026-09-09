@@ -175,13 +175,15 @@ public sealed class PathFinder
                 if (hasKnownState && candidateCost >= knownState.CostFromStart)
                     continue;
 
-                double heuristicDistance = this.GetValidatedHeuristic(childNodeId, destinationNodeId);
+                double heuristicDistance = hasKnownState
+                    ? knownState.Heuristic
+                    : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
                 double score = candidateCost + heuristicDistance;
 
                 if (!double.IsFinite(score))
                     throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
 
-                SearchState childState = new(currentNodeId, connection.Cost, candidateCost, score);
+                SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
 
                 searchStates[childNodeId] = childState;
                 openNodeIds.Enqueue(childNodeId, childState.Score);
@@ -286,17 +288,19 @@ public sealed class PathFinder
                         currentNodeId,
                         connection.Cost,
                         candidateCost,
-                        knownState.Score);
+                        knownState.Heuristic);
                     continue;
                 }
 
-                double heuristicDistance = this.GetValidatedHeuristic(childNodeId, destinationNodeId);
+                double heuristicDistance = hasKnownState
+                    ? knownState.Heuristic
+                    : this.GetValidatedHeuristic(childNodeId, destinationNodeId);
                 double score = candidateCost + heuristicDistance;
 
                 if (!double.IsFinite(score))
                     throw new InvalidOperationException($"The search score for node '{childNodeId}' is not finite.");
 
-                SearchState childState = new(currentNodeId, connection.Cost, candidateCost, score);
+                SearchState childState = new(currentNodeId, connection.Cost, candidateCost, heuristicDistance);
 
                 searchStates[childNodeId] = childState;
                 openNodeIds.Enqueue(childNodeId, new SearchPriority(childNodeId, childState.Score));
@@ -500,13 +504,13 @@ public sealed class PathFinder
         /// <param name="parentId">The preceding node identifier, or <see langword="null"/> for the start node.</param>
         /// <param name="costFromPrevious">The traversal cost from the preceding node.</param>
         /// <param name="costFromStart">The accumulated cost from the start node.</param>
-        /// <param name="score">The total estimated score used as the queue priority.</param>
-        public SearchState(int? parentId, double costFromPrevious, double costFromStart, double score)
+        /// <param name="heuristic">The validated estimate of the remaining cost to the destination.</param>
+        public SearchState(int? parentId, double costFromPrevious, double costFromStart, double heuristic)
         {
             this.ParentId = parentId;
             this.CostFromPrevious = costFromPrevious;
             this.CostFromStart = costFromStart;
-            this.Score = score;
+            this.Heuristic = heuristic;
         }
 
         #endregion
@@ -529,9 +533,14 @@ public sealed class PathFinder
         public double CostFromStart { get; }
 
         /// <summary>
+        /// Gets the validated estimate of the remaining cost to the destination.
+        /// </summary>
+        public double Heuristic { get; }
+
+        /// <summary>
         /// Gets the queue priority associated with this state.
         /// </summary>
-        public double Score { get; }
+        public double Score => this.CostFromStart + this.Heuristic;
 
         #endregion
     }

@@ -106,6 +106,16 @@ guarantee.
 
 Heuristic values must be finite and non-negative. Invalid values cause `FindPath` to throw `InvalidOperationException`.
 
+During a single `FindPath` execution, `IHeuristicProvider` must return the same `double` value for the same
+`(fromNodeId, toNodeId)` pair. The pathfinder may cache and reuse estimates; the number and order of calls to
+`GetHeuristic` are not part of the contract.
+
+An `INodeMap` may be procedural or dynamic and generate connections on demand. It may change freely between
+separate searches, but its observable topology, connections, and traversal costs must remain consistent and stable
+throughout each search, including connection enumeration. Changing the observable map while A* is running is not
+supported by the current algorithm and may produce invalid or nonoptimal results. Coordinate mutations with all
+active searches or provide a stable snapshot for each search.
+
 `HeuristicMath` provides allocation-free Manhattan, Euclidean, and diagonal-distance calculations for two- and
 three-dimensional providers:
 

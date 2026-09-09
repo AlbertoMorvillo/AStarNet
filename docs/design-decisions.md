@@ -58,6 +58,15 @@ internal loops, so the default case does not pay for work it does not need.
 When no heuristic provider is configured, the heuristic is zero and A* behaves as Dijkstra's algorithm. The value is
 used directly rather than calling a dedicated zero-heuristic object for every connection.
 
+Each search state stores the original validated heuristic estimate instead of a stored score. Its score is calculated
+by adding the current cost from the start to that estimate. This avoids repeated provider calls when a cheaper route
+is found without increasing the state size or adding a separate cache lookup. Subtracting the previous cost from a
+stored score cannot reliably recover the original estimate because floating-point addition may have lost precision.
+
+Providers must return the same `double` value for the same node pair throughout each search. The pathfinder may cache
+and reuse estimates, and the number and order of heuristic calls are not contractual. Estimates are not shared across
+searches.
+
 ## Trust the Map, Validate the Values
 
 The node map defines the graph, so the library accepts the connections it returns without asking the same provider to

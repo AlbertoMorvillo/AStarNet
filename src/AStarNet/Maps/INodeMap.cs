@@ -7,6 +7,12 @@ namespace AStarNet.Maps;
 /// </summary>
 /// <remarks>
 /// Implementations define which node identifiers exist and the directed connections originating from each node.
+/// Maps may be procedural or dynamic and generate connections on demand. They may change freely between separate
+/// searches. During a single execution of <see cref="PathFinder.FindPath"/>, however, the topology, connections, and
+/// traversal costs observable by the pathfinder must remain consistent and stable, including during enumeration.
+/// Changing the observable map while a search is running is not supported by the current A* algorithm and may
+/// produce invalid or nonoptimal results. Mutable implementations must coordinate changes with active and
+/// concurrent searches or provide a stable snapshot for each search.
 /// </remarks>
 public interface INodeMap
 {

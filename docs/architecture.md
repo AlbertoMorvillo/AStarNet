@@ -23,10 +23,18 @@ exist and returns the outgoing connections for nodes visited by the search.
 The provider owns the graph representation and any application-specific content. It may use arrays, dictionaries,
 generated data, database-backed data, or another storage model without exposing that choice to AStar.net.
 
+Procedural maps may generate connections on demand and change between searches. During each search, observable
+topology, connections, and costs must remain consistent and stable, including during enumeration. Changing the
+observable graph while the current A* algorithm is running is unsupported and may produce invalid or nonoptimal
+results. Coordinate mutations with active searches or provide a stable snapshot for each search.
+
 ### `IHeuristicProvider`
 
 An optional `IHeuristicProvider` estimates the remaining cost between two node identifiers. When no provider is
 supplied, every estimate is treated as zero and the search behaves like Dijkstra's algorithm.
+
+Within a single `FindPath` call, the same `(fromNodeId, toNodeId)` pair must return the same `double` value. The
+pathfinder may cache and reuse estimates; the number and order of `GetHeuristic` calls are not part of the contract.
 
 ### `ITieBreakerProvider`
 
@@ -61,7 +69,9 @@ score = cost from start + heuristic estimate
 ## Search State and Priority Queue
 
 The state dictionary stores the best route currently known for every discovered node. Each state contains the parent
-identifier, the cost from that parent, the accumulated cost from the start, and the A* score.
+identifier, the cost from that parent, the accumulated cost from the start, and the validated heuristic estimate.
+`Score` is calculated as `CostFromStart + Heuristic`. Better routes and equal-cost parent replacements preserve the
+original estimate. Estimates remain local to the search and are not carried into subsequent calls.
 
 The priority queue is not indexed. When a better route to an already queued node is found, the improved entry is added
 without removing the older one. When an entry is removed from the queue, its priority is compared with the current

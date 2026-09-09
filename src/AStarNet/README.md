@@ -28,6 +28,14 @@ sequence of `PathStep` values.
 Custom heuristics must return finite, non-negative estimates and must never overestimate the actual minimum remaining
 cost when an optimal result is required.
 
+During each `FindPath` call, the same `(fromNodeId, toNodeId)` pair must produce the same `double` estimate. The
+pathfinder may cache and reuse estimates; the number and order of `GetHeuristic` calls are not part of the contract.
+
+Maps may generate connections on demand and change between searches. Observable topology, connections, and costs
+must remain consistent and stable throughout each search, including enumeration. Changing the observable map while
+the current A* algorithm is running is unsupported and may produce invalid or nonoptimal results. Coordinate changes
+with active searches or provide a stable snapshot for each search.
+
 `HeuristicMath` provides Manhattan, Euclidean, octile, and three-dimensional diagonal calculations without requiring
 the library to know how node identifiers map to coordinates.
 
