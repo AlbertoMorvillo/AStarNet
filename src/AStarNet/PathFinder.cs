@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Threading;
 using AStarNet.Heuristics;
 using AStarNet.Maps;
@@ -96,7 +95,7 @@ public sealed class PathFinder
             throw new KeyNotFoundException($"Start node with ID '{startNodeId}' was not found.");
 
         if (startNodeId == destinationNodeId)
-            return new Path([new PathStep(startNodeId, 0, 0)]);
+            return new Path([(startNodeId, 0)]);
 
         if (!this.NodeMap.ContainsNode(destinationNodeId))
             throw new KeyNotFoundException($"Destination node with ID '{destinationNodeId}' was not found.");
@@ -591,18 +590,18 @@ public sealed class PathFinder
             currentNodeId = currentState.ParentId;
         }
 
-        ImmutableArray<PathStep>.Builder stepBuilder = ImmutableArray.CreateBuilder<PathStep>(stepCount);
-        stepBuilder.Count = stepCount;
+        (int NodeId, double CostFromPrevious)[] steps = new (int NodeId, double CostFromPrevious)[stepCount];
         currentNodeId = destinationNodeId;
 
         for (int index = stepCount - 1; index >= 0; index--)
         {
             SearchState state = searchStates[currentNodeId!.Value];
-            stepBuilder[index] = new PathStep(currentNodeId.Value, state.CostFromPrevious, state.CostFromStart);
+            steps[index] = (currentNodeId.Value, state.CostFromPrevious);
             currentNodeId = state.ParentId;
         }
 
-        return new Path(stepBuilder.MoveToImmutable());
+        // Path calculates totals from the final connections, not potentially outdated search-state costs.
+        return new Path(steps);
     }
 
     #endregion

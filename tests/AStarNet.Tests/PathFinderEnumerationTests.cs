@@ -8,7 +8,7 @@ namespace AStarNet.Tests;
 public sealed class PathFinderEnumerationTests
 {
     /// <summary>
-    /// Verifies the same path and expansion order for arrays, lists, and iterators.
+    /// Verifies that a cheaper route replaces the previous route for arrays, lists, and iterators.
     /// </summary>
     /// <param name="representation">The connection representation to return.</param>
     /// <param name="useTieBreaker">Whether to use the tie-breaking search loop.</param>
@@ -36,7 +36,9 @@ public sealed class PathFinderEnumerationTests
         Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
 
         Assert.Equal([0, 2, 1, 3], path.Steps.Select(step => step.NodeId));
+        Assert.Equal([0, 1, 1, 1], path.Steps.Select(step => step.CostFromPrevious));
         Assert.Equal([0, 1, 2, 3], path.Steps.Select(step => step.CostFromStart));
+        Assert.Equal(3, path.Cost);
         Assert.Equal([0, 2, 1], expandedNodeIds);
     }
 

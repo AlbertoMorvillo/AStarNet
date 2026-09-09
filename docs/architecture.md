@@ -78,7 +78,7 @@ original estimate. Estimates remain local to the search and are not carried into
 
 The priority queue is not indexed. When a better route to an already queued node is found, the improved entry is added
 without removing the older one. When an entry is removed from the queue, its priority is compared with the current
-state. An older, more expensive entry is discarded immediately.
+state. An entry with a greater score is discarded; rounding can make old and new scores equal.
 
 This keeps queue operations simple while preserving the best route in the state dictionary. The rationale and
 alternatives are documented in [Design Decisions](design-decisions.md#priority-queue).
@@ -98,10 +98,16 @@ the next queued score is greater than the destination score.
 
 ## Path Reconstruction
 
-Search states point from each node to its chosen parent. The reconstruction stage first counts the chain from the
-destination to the start, then allocates an immutable-array builder with the exact required size. It fills the builder
-backwards so that the final path is ordered from start to destination without an additional reversal or temporary
-collection.
+The pathfinder counts the parent chain, then fills an exactly sized array of node IDs and incoming costs backwards.
+The array is passed to the public Path constructor in start-to-destination order.
+
+The constructor creates immutable steps, calculates accumulated costs, checks input costs and overflow, and computes
+the hash in one pass. Search-state totals are not copied: they may lag behind parent changes when rounded scores tie.
+Arrays and exact lists are enumerated directly with a result buffer of known size. Other sequences are consumed once
+using their own enumerators and a growing buffer. Input collections are not retained.
+
+Concatenation performs its own traversal of existing steps and uses a private constructor to store the completed
+array, total cost, and hash. Both construction routes use the same cost accumulation and hashing logic.
 
 ## Validation Boundaries
 

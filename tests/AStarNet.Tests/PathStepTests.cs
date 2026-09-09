@@ -44,7 +44,7 @@ public sealed class PathStepTests
     }
 
     /// <summary>
-    /// Creates the final step of a path through the public pathfinding API.
+    /// Creates the final step through the public Path constructor.
     /// </summary>
     /// <param name="nodeId">The final node identifier.</param>
     /// <param name="costFromPrevious">The cost of the final connection.</param>

@@ -148,6 +148,7 @@ public sealed class PathTests
         Path second = TestPathFactory.Create(2, (3, 1));
 
         Assert.Throws<ArgumentException>(() => first.Concat(second));
+        Assert.Throws<ArgumentException>(() => Path.Concat(first, second));
     }
 
     /// <summary>
@@ -174,5 +175,54 @@ public sealed class PathTests
         Path second = TestPathFactory.Create(1, (2, double.MaxValue));
 
         Assert.Throws<InvalidOperationException>(() => first.Concat(second));
+        Assert.Throws<InvalidOperationException>(() => Path.Concat(first, second));
+    }
+
+    /// <summary>
+    /// Verifies that concatenation reuses its only non-empty input.
+    /// </summary>
+    [Fact]
+    public void Concat_WithOneNonEmptyPath_ReusesInstance()
+    {
+        Path path = new([(0, 0), (1, 2)]);
+        Assert.Same(path, path.Concat(Path.Empty));
+        Assert.Same(path, Path.Empty.Concat(path));
+        Assert.Same(path, Path.Concat(Path.Empty, path, Path.Empty));
+    }
+
+    /// <summary>
+    /// Verifies that a trailing iterator failure is observed and the iterator is disposed.
+    /// </summary>
+    [Fact]
+    public void Concat_WithTrailingEnumerationFailure_PropagatesAndDisposes()
+    {
+        Path path = new([(0, 0)]);
+        InvalidOperationException failure = new("Enumeration failed.");
+        bool disposed = false;
+        IEnumerable<Path> paths = PathTests.YieldThenThrow(path, failure, () => disposed = true);
+
+        Assert.Same(failure, Assert.Throws<InvalidOperationException>(() => Path.Concat(paths)));
+        Assert.True(disposed);
+    }
+
+    /// <summary>
+    /// Yields a path before failing and records disposal.
+    /// </summary>
+    /// <param name="path">The path to yield.</param>
+    /// <param name="failure">The exception to throw.</param>
+    /// <param name="onDisposed">The disposal callback.</param>
+    /// <returns>The failing sequence.</returns>
+    private static IEnumerable<Path> YieldThenThrow(Path path, Exception failure, Action onDisposed)
+    {
+        try
+        {
+            yield return path;
+            yield return Path.Empty;
+            throw failure;
+        }
+        finally
+        {
+            onDisposed();
+        }
     }
 }

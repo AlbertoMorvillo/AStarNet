@@ -18,29 +18,71 @@ public sealed class Path : IEquatable<Path>
     #region Constructors
 
     /// <summary>
-    /// Initializes an empty path.
+    /// Stores completed steps, their total cost, and their hash.
     /// </summary>
-    private Path()
+    /// <param name="steps">The immutable steps with consistent accumulated costs.</param>
+    /// <param name="cost">The total cost of the steps.</param>
+    /// <param name="hashCode">The hash calculated from the steps followed by the total cost.</param>
+    private Path(ImmutableArray<PathStep> steps, double cost, int hashCode)
     {
-        this.Steps = [];
-        this.Cost = 0;
-        this._precomputedHashCode = this.GenerateHashCode();
+        this.Steps = steps;
+        this.Cost = cost;
+        this._precomputedHashCode = hashCode;
     }
 
     /// <summary>
-    /// Initializes a path from an immutable sequence of validated steps.
+    /// Creates a path from node identifiers and their incoming connection costs.
     /// </summary>
-    /// <param name="steps">The ordered path steps.</param>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="steps"/> is empty, is uninitialized, or contains inconsistent costs.
-    /// </exception>
-    internal Path(ImmutableArray<PathStep> steps)
+    /// <param name="steps">The steps in order from start to destination. The first cost must be zero.</param>
+    /// <remarks>
+    /// The sequence is consumed once and is not retained. An empty sequence creates an empty path.
+    /// Keep the input stable during construction. Node identifiers and connections are not checked against a map.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="steps"/> is null.</exception>
+    /// <exception cref="ArgumentException">A cost is negative or non-finite, or the first cost is not zero.</exception>
+    /// <exception cref="InvalidOperationException">The accumulated cost is not finite.</exception>
+    public Path(IEnumerable<(int NodeId, double CostFromPrevious)> steps)
     {
-        Path.ValidateSteps(steps);
+        ArgumentNullException.ThrowIfNull(steps);
 
-        this.Steps = steps;
-        this.Cost = steps[^1].CostFromStart;
-        this._precomputedHashCode = this.GenerateHashCode();
+        double costFromStart = 0;
+        HashCode hash = new();
+        ImmutableArray<PathStep>.Builder result;
+
+        if (steps is (int NodeId, double CostFromPrevious)[] arraySteps)
+        {
+            result = ImmutableArray.CreateBuilder<PathStep>(arraySteps.Length);
+            foreach ((int nodeId, double costFromPrevious) in arraySteps)
+            {
+                Path.ValidateStepInput(costFromPrevious, result.Count == 0);
+                Path.AppendStep(result, nodeId, costFromPrevious, ref costFromStart, ref hash);
+            }
+        }
+        else if (steps.GetType() == typeof(List<(int NodeId, double CostFromPrevious)>))
+        {
+            List<(int NodeId, double CostFromPrevious)> listSteps =
+                (List<(int NodeId, double CostFromPrevious)>)steps;
+            result = ImmutableArray.CreateBuilder<PathStep>(listSteps.Count);
+            foreach ((int nodeId, double costFromPrevious) in listSteps)
+            {
+                Path.ValidateStepInput(costFromPrevious, result.Count == 0);
+                Path.AppendStep(result, nodeId, costFromPrevious, ref costFromStart, ref hash);
+            }
+        }
+        else
+        {
+            result = ImmutableArray.CreateBuilder<PathStep>();
+            foreach ((int nodeId, double costFromPrevious) in steps)
+            {
+                Path.ValidateStepInput(costFromPrevious, result.Count == 0);
+                Path.AppendStep(result, nodeId, costFromPrevious, ref costFromStart, ref hash);
+            }
+        }
+
+        hash.Add(costFromStart);
+        this.Steps = result.DrainToImmutable();
+        this.Cost = costFromStart;
+        this._precomputedHashCode = hash.ToHashCode();
     }
 
     #endregion
@@ -75,7 +117,7 @@ public sealed class Path : IEquatable<Path>
     /// <summary>
     /// Gets the shared empty path.
     /// </summary>
-    public static Path Empty { get; } = new();
+    public static Path Empty { get; } = new(Array.Empty<(int NodeId, double CostFromPrevious)>());
 
     #endregion
 
@@ -100,6 +142,7 @@ public sealed class Path : IEquatable<Path>
     /// <summary>
     /// Creates a path by appending another connected path.
     /// </summary>
+    /// <remarks>An empty operand returns the other path without copying it.</remarks>
     /// <param name="other">The path to append.</param>
     /// <returns>The concatenated path.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
@@ -109,7 +152,24 @@ public sealed class Path : IEquatable<Path>
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        return Path.Concat(this, other);
+        if (this.IsEmpty)
+            return other;
+
+        if (other.IsEmpty)
+            return this;
+
+        if (this.EndNodeId != other.StartNodeId)
+            throw new ArgumentException("Consecutive paths must share their boundary node.", nameof(other));
+
+        int stepCount = checked(this.Steps.Length + (other.Steps.Length - 1));
+        ImmutableArray<PathStep>.Builder result = ImmutableArray.CreateBuilder<PathStep>(stepCount);
+        double costFromStart = 0;
+        HashCode hash = new();
+        int? previousEndNodeId = null;
+        Path.AppendPath(result, this, ref previousEndNodeId, ref costFromStart, ref hash);
+        Path.AppendPath(result, other, ref previousEndNodeId, ref costFromStart, ref hash);
+        hash.Add(costFromStart);
+        return new Path(result.MoveToImmutable(), costFromStart, hash.ToHashCode());
     }
 
     /// <summary>
@@ -130,6 +190,10 @@ public sealed class Path : IEquatable<Path>
     /// <summary>
     /// Concatenates a sequence of connected paths.
     /// </summary>
+    /// <remarks>
+    /// The sequence is consumed once. If it contains only one non-empty path, that instance is returned.
+    /// Connections are checked by their boundary node identifiers, not against a map.
+    /// </remarks>
     /// <param name="paths">The paths to concatenate.</param>
     /// <returns>The concatenated path, or an empty path when the sequence has no non-empty paths.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="paths"/> is <see langword="null"/> or contains a null path.</exception>
@@ -139,35 +203,42 @@ public sealed class Path : IEquatable<Path>
     {
         ArgumentNullException.ThrowIfNull(paths);
 
-        ImmutableArray<PathStep>.Builder combinedSteps = ImmutableArray.CreateBuilder<PathStep>();
-        int? previousEndNodeId = null;
+        ImmutableArray<PathStep>.Builder? result = null;
+        Path? firstPath = null;
         double costFromStart = 0;
+        HashCode hash = new();
+        int? previousEndNodeId = null;
 
         foreach (Path path in paths)
         {
             ArgumentNullException.ThrowIfNull(path);
-
             if (path.IsEmpty)
                 continue;
 
-            if (previousEndNodeId.HasValue && previousEndNodeId != path.StartNodeId)
-                throw new ArgumentException("Consecutive paths must share their boundary node.", nameof(paths));
-
-            int startIndex = combinedSteps.Count == 0 ? 0 : 1;
-            for (int index = startIndex; index < path.Steps.Length; index++)
+            if (firstPath is null)
             {
-                PathStep step = path.Steps[index];
-                double costFromPrevious = combinedSteps.Count == 0 ? 0 : step.CostFromPrevious;
-                costFromStart = Path.AddCosts(costFromStart, costFromPrevious);
-                combinedSteps.Add(new PathStep(step.NodeId, costFromPrevious, costFromStart));
+                firstPath = path;
+                continue;
             }
 
-            previousEndNodeId = path.EndNodeId;
+            if (result is null)
+            {
+                if (firstPath.EndNodeId != path.StartNodeId)
+                    throw new ArgumentException("Consecutive paths must share their boundary node.", nameof(paths));
+
+                int initialCapacity = checked(firstPath.Steps.Length + (path.Steps.Length - 1));
+                result = ImmutableArray.CreateBuilder<PathStep>(initialCapacity);
+                Path.AppendPath(result, firstPath, ref previousEndNodeId, ref costFromStart, ref hash);
+            }
+
+            Path.AppendPath(result, path, ref previousEndNodeId, ref costFromStart, ref hash);
         }
 
-        return combinedSteps.Count == 0
-            ? Path.Empty
-            : new Path(combinedSteps.ToImmutable());
+        if (result is null)
+            return firstPath ?? Path.Empty;
+
+        hash.Add(costFromStart);
+        return new Path(result.DrainToImmutable(), costFromStart, hash.ToHashCode());
     }
 
     /// <inheritdoc/>
@@ -239,52 +310,70 @@ public sealed class Path : IEquatable<Path>
     }
 
     /// <summary>
-    /// Checks that the steps form a non-empty path with consistent costs.
+    /// Checks that an incoming cost is finite, non-negative, and zero for the first step.
     /// </summary>
-    /// <param name="steps">The steps to validate.</param>
-    /// <exception cref="ArgumentException">
-    /// <paramref name="steps"/> is empty, is uninitialized, or contains inconsistent costs.
-    /// </exception>
-    private static void ValidateSteps(ImmutableArray<PathStep> steps)
+    /// <param name="costFromPrevious">The incoming connection cost.</param>
+    /// <param name="isFirstStep">Whether this is the first step in the path.</param>
+    private static void ValidateStepInput(double costFromPrevious, bool isFirstStep)
     {
-        if (steps.IsDefaultOrEmpty)
-            throw new ArgumentException("A non-empty path must contain at least one initialized step.", nameof(steps));
+        if (!double.IsFinite(costFromPrevious) || costFromPrevious < 0)
+            throw new ArgumentException("Step costs must be finite and non-negative.", "steps");
 
-        PathStep startStep = steps[0];
-        if (!startStep.CostFromPrevious.Equals(0) || !startStep.CostFromStart.Equals(0))
-            throw new ArgumentException("The first path step must have zero traversal costs.", nameof(steps));
-
-        double expectedCostFromStart = 0;
-
-        for (int index = 1; index < steps.Length; index++)
-        {
-            PathStep step = steps[index];
-
-            if (!double.IsFinite(step.CostFromPrevious) || step.CostFromPrevious < 0)
-                throw new ArgumentException("Path-step costs must be finite and non-negative.", nameof(steps));
-
-            expectedCostFromStart = Path.AddCosts(expectedCostFromStart, step.CostFromPrevious);
-
-            if (!step.CostFromStart.Equals(expectedCostFromStart))
-                throw new ArgumentException("A path step contains an inconsistent accumulated cost.", nameof(steps));
-        }
+        if (isFirstStep && costFromPrevious != 0)
+            throw new ArgumentException("The first step must have zero incoming cost.", "steps");
     }
 
     /// <summary>
-    /// Generates the hash code for this immutable path.
+    /// Appends a step with a known valid incoming cost, checking the new total for overflow.
     /// </summary>
-    /// <returns>The generated hash code.</returns>
-    private int GenerateHashCode()
+    /// <param name="result">The completed steps.</param>
+    /// <param name="nodeId">The node identifier.</param>
+    /// <param name="costFromPrevious">The finite, non-negative incoming cost.</param>
+    /// <param name="costFromStart">The accumulated cost.</param>
+    /// <param name="hash">The hash accumulator.</param>
+    private static void AppendStep(
+        ImmutableArray<PathStep>.Builder result,
+        int nodeId,
+        double costFromPrevious,
+        ref double costFromStart,
+        ref HashCode hash)
     {
-        HashCode hash = new();
-        hash.Add(this.Cost);
+        costFromStart = Path.AddCosts(costFromStart, costFromPrevious);
+        PathStep step = new(nodeId, costFromPrevious, costFromStart);
+        result.Add(step);
+        hash.Add(step);
+    }
 
-        foreach (PathStep step in this.Steps)
+    /// <summary>
+    /// Appends a connected path without repeating its shared boundary node.
+    /// </summary>
+    /// <param name="result">The completed steps.</param>
+    /// <param name="path">The next path to append.</param>
+    /// <param name="previousEndNodeId">The end of the previous non-empty path.</param>
+    /// <param name="costFromStart">The accumulated cost.</param>
+    /// <param name="hash">The hash accumulator.</param>
+    private static void AppendPath(
+        ImmutableArray<PathStep>.Builder result,
+        Path path,
+        ref int? previousEndNodeId,
+        ref double costFromStart,
+        ref HashCode hash)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        if (path.IsEmpty)
+            return;
+
+        if (previousEndNodeId.HasValue && previousEndNodeId != path.StartNodeId)
+            throw new ArgumentException("Consecutive paths must share their boundary node.", "paths");
+
+        int startIndex = previousEndNodeId.HasValue ? 1 : 0;
+        for (int index = startIndex; index < path.Steps.Length; index++)
         {
-            hash.Add(step);
+            PathStep step = path.Steps[index];
+            Path.AppendStep(result, step.NodeId, step.CostFromPrevious, ref costFromStart, ref hash);
         }
 
-        return hash.ToHashCode();
+        previousEndNodeId = path.EndNodeId;
     }
 
     #endregion

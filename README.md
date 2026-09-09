@@ -24,6 +24,7 @@ AStar.net is an open-source .NET 10 library for calculating paths with the A* al
 - Custom heuristic providers, with Dijkstra's algorithm used by default.
 - Optional tie-breaker providers for ordering candidates with equal A* scores.
 - Immutable path results with per-step and accumulated costs.
+- Public path construction from node IDs and incoming costs, with automatic accumulated costs.
 - Safe concurrent searches when the configured providers support concurrent reads.
 
 ## Installation
@@ -42,6 +43,10 @@ using AStarNet.Heuristics;
 using AStarNet.Maps;
 using System.Collections.Generic;
 using System.Linq;
+
+MyNodeMap map = new();
+PathFinder pathFinder = new(map);
+Path path = pathFinder.FindPath(0, 2);
 
 public sealed class MyNodeMap : INodeMap
 {
@@ -66,9 +71,6 @@ public sealed class MyNodeMap : INodeMap
     }
 }
 
-MyNodeMap map = new();
-PathFinder pathFinder = new(map);
-Path path = pathFinder.FindPath(0, 2);
 ```
 
 `GetConnections` must return:

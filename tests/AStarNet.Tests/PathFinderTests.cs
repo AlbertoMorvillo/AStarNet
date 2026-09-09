@@ -6,6 +6,42 @@ namespace AStarNet.Tests;
 public sealed class PathFinderTests
 {
     /// <summary>
+    /// Verifies that reconstructed costs follow the final parent chain when rounded scores tie.
+    /// </summary>
+    /// <param name="useTieBreaker">Whether to use the tie-breaking search loop.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FindPath_WhenRoundedScoresDelayCostPropagation_RecalculatesPathCosts(bool useTieBreaker)
+    {
+        const double finalConnectionCost = 36028797018963968;
+        TestGraph graph = new(
+            [0, 1, 2, 3, 4, 5, 6],
+            (0, 1, 3),
+            (0, 2, 1),
+            (1, 3, 0),
+            (2, 5, 0),
+            (3, 4, 0),
+            (4, 6, finalConnectionCost),
+            (5, 1, 1));
+        DelegateHeuristic heuristic = new(
+            (fromNodeId, toNodeId) => fromNodeId == toNodeId ? 0 : finalConnectionCost);
+        DelegateTieBreaker? tieBreaker = useTieBreaker
+            ? new((_, _, leftNodeId, rightNodeId) => leftNodeId.CompareTo(rightNodeId))
+            : null;
+        PathFinder pathFinder = new(graph, heuristic, tieBreaker);
+
+        Path path = pathFinder.FindPath(0, 6, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 2, 5, 1, 3, 4, 6], path.Steps.Select(step => step.NodeId));
+        Assert.Equal([0, 1, 0, 1, 0, 0, finalConnectionCost],
+            path.Steps.Select(step => step.CostFromPrevious));
+        Assert.Equal([0, 1, 1, 2, 2, 2, finalConnectionCost],
+            path.Steps.Select(step => step.CostFromStart));
+        Assert.Equal(finalConnectionCost, path.Cost);
+    }
+
+    /// <summary>
     /// Verifies that a pathfinder cannot be created without a node map.
     /// </summary>
     [Fact]
@@ -25,28 +61,6 @@ public sealed class PathFinderTests
 
         Assert.Null(pathFinder.HeuristicProvider);
         Assert.Null(pathFinder.TieBreakerProvider);
-    }
-
-    /// <summary>
-    /// Verifies that a later cheaper route replaces an earlier expensive route.
-    /// </summary>
-    [Fact]
-    public void FindPath_WhenAQueuedNodeReceivesACheaperRoute_ReturnsTheOptimalPath()
-    {
-        TestGraph graph = new(
-            [0, 1, 2, 3],
-            (0, 1, 5),
-            (0, 2, 1),
-            (2, 1, 1),
-            (1, 3, 1));
-        PathFinder pathFinder = new(graph);
-
-        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
-
-        Assert.Equal([0, 2, 1, 3], path.Steps.Select(step => step.NodeId));
-        Assert.Equal([0, 1, 1, 1], path.Steps.Select(step => step.CostFromPrevious));
-        Assert.Equal([0, 1, 2, 3], path.Steps.Select(step => step.CostFromStart));
-        Assert.Equal(3, path.Cost);
     }
 
     /// <summary>

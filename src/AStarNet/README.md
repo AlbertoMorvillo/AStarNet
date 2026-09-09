@@ -6,6 +6,10 @@ It provides integer node identifiers, directed weighted connections, cooperative
 optional custom heuristics, and optional candidate tie-breaking. Without a custom heuristic, every estimate is zero and
 searches behave like Dijkstra's algorithm.
 
+Paths can also be created directly from an ordered sequence of `(NodeId, CostFromPrevious)` tuples. The first cost
+must be zero. The constructor calculates accumulated costs and creates immutable steps; it does not validate the
+connections against a map. See [Paths and Steps](https://github.com/AlbertoMorvillo/AStarNet/wiki/Paths-and-Steps).
+
 ## Installation
 
 ```bash

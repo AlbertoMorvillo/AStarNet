@@ -19,7 +19,7 @@ From the repository root, run:
 ```powershell
 dotnet restore AStarNet.sln
 dotnet build AStarNet.sln --configuration Release --no-restore
-dotnet test AStarNet.sln --configuration Release --no-build --no-restore
+dotnet test --solution AStarNet.sln --configuration Release --no-build --no-restore
 ```
 
 The build must complete without errors. Warnings and test failures must be reviewed rather than ignored.

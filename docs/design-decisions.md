@@ -80,8 +80,17 @@ heuristic is suitable for the meaning of a particular graph.
 
 ## Immutable Paths
 
-Completed paths are immutable so their steps, cost, equality, and ordering cannot be changed after calculation. To
-obtain a different path, calculate it again; to edit one, copy its steps into an application-owned collection.
+Paths can be constructed from an ordered sequence of (NodeId, CostFromPrevious) tuples. The constructor calculates
+accumulated costs and the hash while creating immutable steps. No lazy cache or separate validation pass is needed.
+The first incoming cost must be zero; all costs must be finite and non-negative, and their running total must remain
+finite. Path does not check connections against a map.
+
+Concat reads path steps directly, checks shared endpoints, and skips duplicate boundary nodes. It recalculates totals
+and the hash without revalidating incoming costs from existing paths. A private constructor stores the completed
+result. No intermediate tuple collection or iterator is needed. When only one non-empty path is supplied, it is reused.
+
+Concatenating two paths allocates the exact result capacity. Concatenating an arbitrary sequence consumes it once and
+grows the result buffer as needed. Completed paths retain no input collections and cannot be changed after construction.
 
 ## Synchronous Search and Cancellation
 
