@@ -24,6 +24,7 @@ AStar.net is an open-source .NET 10 library for calculating paths with the A* al
 - Custom heuristic providers, with Dijkstra's algorithm used by default.
 - Optional tie-breaker providers for ordering candidates with equal A* scores.
 - Immutable path results with per-step and accumulated costs.
+- Public path construction from node IDs and incoming costs, with automatic accumulated costs.
 - Safe concurrent searches when the configured providers support concurrent reads.
 
 ## Installation
@@ -42,6 +43,10 @@ using AStarNet.Heuristics;
 using AStarNet.Maps;
 using System.Collections.Generic;
 using System.Linq;
+
+MyNodeMap map = new();
+PathFinder pathFinder = new(map);
+Path path = pathFinder.FindPath(0, 2);
 
 public sealed class MyNodeMap : INodeMap
 {
@@ -66,9 +71,6 @@ public sealed class MyNodeMap : INodeMap
     }
 }
 
-MyNodeMap map = new();
-PathFinder pathFinder = new(map);
-Path path = pathFinder.FindPath(0, 2);
 ```
 
 `GetConnections` must return:
@@ -105,6 +107,16 @@ custom heuristic must be admissible—never greater than the actual minimum rema
 guarantee.
 
 Heuristic values must be finite and non-negative. Invalid values cause `FindPath` to throw `InvalidOperationException`.
+
+During a single `FindPath` execution, `IHeuristicProvider` must return the same `double` value for the same
+`(fromNodeId, toNodeId)` pair. The pathfinder may cache and reuse estimates; the number and order of calls to
+`GetHeuristic` are not part of the contract.
+
+An `INodeMap` may be procedural or dynamic and generate connections on demand. It may change freely between
+separate searches, but its observable topology, connections, and traversal costs must remain consistent and stable
+throughout each search, including connection enumeration. Changing the observable map while A* is running is not
+supported by the current algorithm and may produce invalid or nonoptimal results. Coordinate mutations with all
+active searches or provide a stable snapshot for each search.
 
 `HeuristicMath` provides allocation-free Manhattan, Euclidean, and diagonal-distance calculations for two- and
 three-dimensional providers:

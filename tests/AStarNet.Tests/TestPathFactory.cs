@@ -13,19 +13,15 @@ internal static class TestPathFactory
     /// <returns>The created path.</returns>
     internal static Path Create(int startId, params (int DestinationId, double Cost)[] connections)
     {
-        int[] nodeIds = [startId, .. connections.Select(connection => connection.DestinationId)];
-        (int From, int To, double Cost)[] edges = new (int From, int To, double Cost)[connections.Length];
-        int currentNodeId = startId;
+        (int NodeId, double CostFromPrevious)[] steps = new (int NodeId, double CostFromPrevious)[connections.Length + 1];
+        steps[0] = (startId, 0);
 
         for (int index = 0; index < connections.Length; index++)
         {
             (int destinationId, double cost) = connections[index];
-            edges[index] = (currentNodeId, destinationId, cost);
-            currentNodeId = destinationId;
+            steps[index + 1] = (destinationId, cost);
         }
 
-        TestGraph graph = new(nodeIds.Distinct(), edges);
-        PathFinder pathFinder = new(graph);
-        return pathFinder.FindPath(startId, currentNodeId);
+        return new Path(steps);
     }
 }

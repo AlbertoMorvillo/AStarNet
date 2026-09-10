@@ -3,10 +3,14 @@ using System.Collections.Generic;
 namespace AStarNet.Maps;
 
 /// <summary>
-/// Represents a navigable map containing nodes used by the pathfinding algorithm.
+/// Defines the nodes and directed connections available to the pathfinder.
 /// </summary>
 /// <remarks>
-/// Implementations define which node identifiers exist and the directed connections originating from each node.
+/// Maps may generate connections on demand and change freely between searches. During each
+/// <see cref="PathFinder.FindPath"/> call, the topology, connections, and costs seen by the pathfinder must stay
+/// consistent and stable, including during enumeration. Changing them while A* is running is unsupported and may
+/// produce invalid or nonoptimal results. Wait for active searches to finish before making changes, or give each
+/// search a stable snapshot.
 /// </remarks>
 public interface INodeMap
 {

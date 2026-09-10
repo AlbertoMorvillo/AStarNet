@@ -1,15 +1,12 @@
 # Design Decisions
 
-AStar.net is designed to keep pathfinding fast, predictable, and easy to integrate. The library provides the algorithm
-and its essential contracts, while the application remains responsible for the graph and its domain data.
-
-The following sections explain the choices that have a visible effect on the API or implementation.
+This page explains the main choices behind AStar.net's API and implementation.
 
 ## Node Identifiers
 
-Node IDs are `int` values because they are simple, fast, and friendly to array-backed maps. More elaborate identifiers
-would add complexity without improving pathfinding. A `Guid`, for example, is considerably more complex and provides
-global uniqueness, while AStar.net only needs an ID to be unique within its node map.
+Node IDs use `int` for compact storage. IDs only need to be unique within their map,
+so globally unique identifiers such as `Guid` are unnecessary. Negative IDs and zero are valid; IDs do not need to
+form a consecutive range. The pathfinder stores search states in a dictionary rather than indexing an array by ID.
 
 Applications that use other identifiers can map them to integers in their provider.
 
@@ -39,14 +36,19 @@ AStar.net uses .NET's `PriorityQueue<TElement, TPriority>`. To improve performan
 better route to the same node is found. An internal state dictionary records the best route currently known and allows
 obsolete queue entries to be recognized and ignored when they are dequeued.
 
-Two custom indexed priority queues were also tested, one based on a binary heap and the other on a quaternary heap.
-Both could locate a queued node and update its priority directly, avoiding obsolete entries. To do so, however, they
-needed an additional index that mapped every node to its current position in the heap. That index also had to be
-updated whenever nodes moved within the heap.
+A four-way indexed heap was compared with the framework queue in complete searches. It was faster in a graph with
+many priority updates, but often slower on weighted grids, with little difference in allocations. AStar.net keeps the
+framework queue rather than adding custom heap code and a separate node-to-position index for that trade-off.
+See [Priority Queue Comparison](priority-queue-comparison.md) for the results and their limits.
 
-Neither heap produced a meaningful overall advantage in the tests. The framework priority queue performed well while
-avoiding the additional index and leaving considerably less custom code to maintain, making it the best compromise
-for the library.
+## Connection Enumeration
+
+`INodeMap.GetConnections` returns `IEnumerable<PathConnection>` to support both stored connections and on-demand
+generation with `yield return`. Arrays and exact `List<PathConnection>` instances are enumerated directly to reduce
+execution time and allocations. Other types use their own enumerators, preserving custom behavior and exceptions.
+This also applies to list subclasses.
+
+The connection-handling code is repeated in these loops. Keep the branches consistent when changing search behavior.
 
 ## Optional Tie-Breaking
 
@@ -55,8 +57,16 @@ internal loops, so the default case does not pay for work it does not need.
 
 ## Optional Heuristic
 
-When no heuristic provider is configured, the heuristic is zero and A* behaves as Dijkstra's algorithm. The value is
-used directly rather than calling a dedicated zero-heuristic object for every connection.
+When no heuristic provider is configured, the heuristic is zero and A* behaves as Dijkstra's algorithm.
+No provider call is needed in this case.
+
+Each search state stores the heuristic estimate and calculates `Score` as `CostFromStart + Heuristic`. This avoids
+repeated provider calls when a cheaper route is found, without increasing state size. Recovering the estimate by
+subtracting the cost from a stored score could lose precision.
+
+Providers must return the same `double` value for the same node pair throughout each search. The pathfinder may cache
+and reuse estimates, and the number and order of heuristic calls are not contractual. Estimates are not shared across
+searches.
 
 ## Trust the Map, Validate the Values
 
@@ -66,17 +76,26 @@ the caller.
 
 Data still has to respect the library's contracts. Connection costs and heuristic estimates must be finite and
 non-negative, calculated costs and priorities must remain finite, and every visited node must return a connection
-collection. Invalid values stop the search with an exception, as do exceptions raised directly by a provider.
+sequence. Invalid values stop the search with an exception, as do exceptions raised directly by a provider.
 
 The library can enforce these concrete limits, but it cannot decide whether the map omitted a connection or whether a
 heuristic is suitable for the meaning of a particular graph.
 
 ## Immutable Paths
 
-Completed paths are immutable so their steps, cost, equality, and ordering cannot be changed after calculation. To
-obtain a different path, calculate it again; to edit one, copy its steps into an application-owned collection.
+Paths can be constructed from an ordered sequence of (NodeId, CostFromPrevious) tuples. The constructor calculates
+accumulated costs and the hash while creating immutable steps. No lazy cache or separate validation pass is needed.
+The first incoming cost must be zero; all costs must be finite and non-negative, and their running total must remain
+finite. Path does not check connections against a map.
+
+Concat reads path steps directly, checks shared endpoints, and skips duplicate boundary nodes. It recalculates totals
+and the hash without revalidating incoming costs from existing paths. A private constructor stores the completed
+result. No intermediate tuple collection or iterator is needed. When only one non-empty path is supplied, it is reused.
+
+Concatenating two paths allocates the exact result capacity. Concatenating an arbitrary sequence consumes it once and
+grows the result buffer as needed. Completed paths retain no input collections and cannot be changed after construction.
 
 ## Synchronous Search and Cancellation
 
 `FindPath` is synchronous and can therefore be run directly or inside a task chosen by the application. It accepts a
-`CancellationToken`, checked at every graph-exploration iteration, so a long-running search can be stopped promptly.
+`CancellationToken`, checked before provider calls and while processing nodes and connections.

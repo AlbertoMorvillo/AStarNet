@@ -272,7 +272,7 @@ internal sealed class ConsoleRenderer
     }
 
     /// <summary>
-    /// Draws one grid cell using the appropriate semantic color.
+    /// Draws a grid cell in the color for its contents.
     /// </summary>
     /// <param name="position">The cell position.</param>
     /// <param name="start">The selected start, if any.</param>
@@ -326,7 +326,7 @@ internal sealed class ConsoleRenderer
     }
 
     /// <summary>
-    /// Determines whether any state represented by grid cells has changed.
+    /// Checks whether the grid needs redrawing.
     /// </summary>
     /// <param name="start">The selected start, if any.</param>
     /// <param name="destination">The selected destination, if any.</param>
@@ -535,7 +535,7 @@ internal sealed class ConsoleRenderer
     }
 
     /// <summary>
-    /// Stores the pathfinding statistics represented by the current console output.
+    /// Records the statistics currently displayed.
     /// </summary>
     /// <param name="pathfindingModes">The displayed pathfinding modes.</param>
     /// <param name="pathfindingResults">The displayed pathfinding results.</param>

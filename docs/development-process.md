@@ -1,7 +1,6 @@
 # Development Process
 
-AStar.net is developed with an emphasis on correctness, meaningful performance, and a small public surface. Internal
-implementation details may change when doing so improves the library without weakening its public contracts.
+AStar.net keeps its public API small and prioritizes correctness, measured performance, and readable code.
 
 ## Development Priorities
 
@@ -19,9 +18,7 @@ should be compared before replacing a simpler implementation.
 Tests exercise the public API. Internal members are not exposed through `InternalsVisibleTo` or similar mechanisms for
 the benefit of the test project.
 
-This keeps internal implementation details free to change and ensures that tests describe behavior available to
-library users. If an internal implementation cannot be observed through the public contract, it is not treated as a
-separate testing surface.
+Tests check behavior available to library users, allowing the implementation to change without rewriting the tests.
 
 ## Validation
 
@@ -43,15 +40,6 @@ pathfinding calls should remain easy to locate and understand.
 
 ## AI-Assisted Development
 
-AI-assisted tools have been used during the development of AStar.net to discuss design alternatives, review code,
-identify edge cases, implement agreed changes, draft tests, and improve documentation.
-
-They were used for three main reasons:
-
-- to provide an additional critical perspective during design and review;
-- to explore alternatives and their trade-offs before changing the implementation;
-- to reduce repetitive work while maintaining consistency across code and documentation.
-
-AI output was not accepted as an independent authority. Design choices were discussed and directed by the project
-author, generated changes were reviewed, and resulting behavior was checked through builds, tests, package inspection,
-and manual use of the console demo. Responsibility for the project and its published releases remains with the author.
+AI tools have helped with design discussions, code review, implementation, tests, and documentation. The project
+author directs and reviews this work and remains responsible for the code and releases. Changes are checked through
+builds, tests, package inspection, and manual use of the console demo as appropriate.

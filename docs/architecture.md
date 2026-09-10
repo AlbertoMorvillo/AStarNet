@@ -23,14 +23,25 @@ exist and returns the outgoing connections for nodes visited by the search.
 The provider owns the graph representation and any application-specific content. It may use arrays, dictionaries,
 generated data, database-backed data, or another storage model without exposing that choice to AStar.net.
 
+Maps may generate connections on demand and change between searches. During a search, the topology, connections,
+and costs seen by the pathfinder must stay consistent and stable, including during enumeration. Changing them while
+A* is running is unsupported and may produce invalid or nonoptimal results. Wait for active searches to finish
+before making changes, or give each search a stable snapshot.
+
+`GetConnections` returns `IEnumerable<PathConnection>`. The search enumerates arrays and exact `List<PathConnection>`
+instances directly; other types use their own enumerators. It does not copy connections into a collection.
+
 ### `IHeuristicProvider`
 
 An optional `IHeuristicProvider` estimates the remaining cost between two node identifiers. When no provider is
 supplied, every estimate is treated as zero and the search behaves like Dijkstra's algorithm.
 
+Within a single `FindPath` call, the same `(fromNodeId, toNodeId)` pair must return the same `double` value. The
+pathfinder may cache and reuse estimates; the number and order of `GetHeuristic` calls are not part of the contract.
+
 ### `ITieBreakerProvider`
 
-An optional `ITieBreakerProvider` resolves genuine ties between candidates. It can influence which equal-cost path is
+An optional `ITieBreakerProvider` resolves ties between candidates. It can influence which equal-cost path is
 selected, but it cannot override score or path-cost differences.
 
 ### `Path`, `PathStep`, and `PathConnection`
@@ -61,14 +72,17 @@ score = cost from start + heuristic estimate
 ## Search State and Priority Queue
 
 The state dictionary stores the best route currently known for every discovered node. Each state contains the parent
-identifier, the cost from that parent, the accumulated cost from the start, and the A* score.
+identifier, the cost from that parent, the accumulated cost from the start, and the validated heuristic estimate.
+`Score` is calculated as `CostFromStart + Heuristic`. Better routes and equal-cost parent replacements preserve the
+original estimate. Estimates remain local to the search and are not carried into subsequent calls.
 
 The priority queue is not indexed. When a better route to an already queued node is found, the improved entry is added
 without removing the older one. When an entry is removed from the queue, its priority is compared with the current
-state. An older, more expensive entry is discarded immediately.
+state. An entry with a greater score is discarded; rounding can make old and new scores equal.
 
 This keeps queue operations simple while preserving the best route in the state dictionary. The rationale and
 alternatives are documented in [Design Decisions](design-decisions.md#priority-queue).
+The [Priority Queue Comparison](priority-queue-comparison.md) records measurements from complete searches.
 
 ## Tie-Breaking Execution Path
 
@@ -85,10 +99,16 @@ the next queued score is greater than the destination score.
 
 ## Path Reconstruction
 
-Search states point from each node to its chosen parent. The reconstruction stage first counts the chain from the
-destination to the start, then allocates an immutable-array builder with the exact required size. It fills the builder
-backwards so that the final path is ordered from start to destination without an additional reversal or temporary
-collection.
+The pathfinder counts the parent chain, then fills an exactly sized array of node IDs and incoming costs backwards.
+The array is passed to the public Path constructor in start-to-destination order.
+
+The constructor creates immutable steps, calculates accumulated costs, checks input costs and overflow, and computes
+the hash in one pass. Search-state totals are not copied: they may lag behind parent changes when rounded scores tie.
+Arrays and exact lists are enumerated directly with a result buffer of known size. Other sequences are consumed once
+using their own enumerators and a growing buffer. Input collections are not retained.
+
+Concatenation performs its own traversal of existing steps and uses a private constructor to store the completed
+array, total cost, and hash. Both construction routes use the same cost accumulation and hashing logic.
 
 ## Validation Boundaries
 
@@ -105,6 +125,5 @@ admissible for that graph. Graph topology returned by the node map is treated as
 
 ## Cancellation
 
-Pathfinding is synchronous and supports cooperative cancellation through `CancellationToken`. The token is checked
-once per main search iteration, providing a cancellation point without adding asynchronous state-machine overhead to a
-CPU-bound operation.
+`FindPath` is synchronous. It checks the `CancellationToken` before provider calls and while processing nodes and
+connections.

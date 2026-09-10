@@ -6,6 +6,42 @@ namespace AStarNet.Tests;
 public sealed class PathFinderTests
 {
     /// <summary>
+    /// Verifies that reconstructed costs follow the final parent chain when rounded scores tie.
+    /// </summary>
+    /// <param name="useTieBreaker">Whether to use the tie-breaking search loop.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FindPath_WhenRoundedScoresDelayCostPropagation_RecalculatesPathCosts(bool useTieBreaker)
+    {
+        const double finalConnectionCost = 36028797018963968;
+        TestGraph graph = new(
+            [0, 1, 2, 3, 4, 5, 6],
+            (0, 1, 3),
+            (0, 2, 1),
+            (1, 3, 0),
+            (2, 5, 0),
+            (3, 4, 0),
+            (4, 6, finalConnectionCost),
+            (5, 1, 1));
+        DelegateHeuristic heuristic = new(
+            (fromNodeId, toNodeId) => fromNodeId == toNodeId ? 0 : finalConnectionCost);
+        DelegateTieBreaker? tieBreaker = useTieBreaker
+            ? new((_, _, leftNodeId, rightNodeId) => leftNodeId.CompareTo(rightNodeId))
+            : null;
+        PathFinder pathFinder = new(graph, heuristic, tieBreaker);
+
+        Path path = pathFinder.FindPath(0, 6, TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 2, 5, 1, 3, 4, 6], path.Steps.Select(step => step.NodeId));
+        Assert.Equal([0, 1, 0, 1, 0, 0, finalConnectionCost],
+            path.Steps.Select(step => step.CostFromPrevious));
+        Assert.Equal([0, 1, 1, 2, 2, 2, finalConnectionCost],
+            path.Steps.Select(step => step.CostFromStart));
+        Assert.Equal(finalConnectionCost, path.Cost);
+    }
+
+    /// <summary>
     /// Verifies that a pathfinder cannot be created without a node map.
     /// </summary>
     [Fact]
@@ -25,28 +61,6 @@ public sealed class PathFinderTests
 
         Assert.Null(pathFinder.HeuristicProvider);
         Assert.Null(pathFinder.TieBreakerProvider);
-    }
-
-    /// <summary>
-    /// Verifies that a later cheaper route replaces an earlier expensive route.
-    /// </summary>
-    [Fact]
-    public void FindPath_WhenAQueuedNodeReceivesACheaperRoute_ReturnsTheOptimalPath()
-    {
-        TestGraph graph = new(
-            [0, 1, 2, 3],
-            (0, 1, 5),
-            (0, 2, 1),
-            (2, 1, 1),
-            (1, 3, 1));
-        PathFinder pathFinder = new(graph);
-
-        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
-
-        Assert.Equal([0, 2, 1, 3], path.Steps.Select(step => step.NodeId));
-        Assert.Equal([0, 1, 1, 1], path.Steps.Select(step => step.CostFromPrevious));
-        Assert.Equal([0, 1, 2, 3], path.Steps.Select(step => step.CostFromStart));
-        Assert.Equal(3, path.Cost);
     }
 
     /// <summary>
@@ -178,7 +192,7 @@ public sealed class PathFinderTests
     }
 
     /// <summary>
-    /// Verifies that equal-score work continues after the destination is first dequeued.
+    /// Verifies that nodes with the same score are processed after the destination is reached.
     /// </summary>
     [Fact]
     public void FindPath_WhenDestinationIsDequeuedWithinATiedPlateau_ResolvesEqualCostParent()
@@ -210,8 +224,11 @@ public sealed class PathFinderTests
     /// <summary>
     /// Verifies that an admissible but inconsistent heuristic can reopen a node with a cheaper route.
     /// </summary>
-    [Fact]
-    public void FindPath_WhenHeuristicIsInconsistent_ReopensNodeAndReturnsOptimalPath()
+    /// <param name="useTieBreaker">Whether to exercise the search with a tie-breaker.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FindPath_WhenHeuristicIsInconsistent_ReopensNodeAndReturnsOptimalPath(bool useTieBreaker)
     {
         TestGraph graph = new(
             [0, 1, 2, 3],
@@ -227,13 +244,132 @@ public sealed class PathFinderTests
             [2] = 1.5,
             [3] = 0
         };
-        DelegateHeuristic heuristic = new((fromNodeId, _) => estimates[fromNodeId]);
-        PathFinder pathFinder = new(graph, heuristic);
+        Dictionary<int, int> heuristicCallCounts = new();
+        DelegateHeuristic heuristic = new((fromNodeId, _) =>
+        {
+            heuristicCallCounts.TryGetValue(fromNodeId, out int callCount);
+            heuristicCallCounts[fromNodeId] = callCount + 1;
+            return estimates[fromNodeId];
+        });
+        DelegateTieBreaker? tieBreaker = useTieBreaker
+            ? new((_, _, leftNodeId, rightNodeId) => leftNodeId.CompareTo(rightNodeId))
+            : null;
+        PathFinder pathFinder = new(graph, heuristic, tieBreaker);
 
         Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
 
         Assert.Equal([0, 2, 1, 3], path.Steps.Select(step => step.NodeId));
         Assert.Equal(2.5, path.Cost);
+        Assert.Equal(4, heuristicCallCounts.Count);
+        Assert.All(heuristicCallCounts.Values, callCount => Assert.Equal(1, callCount));
+    }
+
+    /// <summary>
+    /// Verifies that a cheaper route preserves an estimate lost to rounding in the previous score.
+    /// </summary>
+    /// <param name="useTieBreaker">Whether to exercise the search with a tie-breaker.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FindPath_WhenPreviousScoreRoundsAwayHeuristic_PreservesExpansionOrder(bool useTieBreaker)
+    {
+        const double expensiveConnectionCost = 9007199254740992;
+        List<int> expandedNodeIds = [];
+        DelegateNodeMap map = new(
+            nodeId => nodeId is >= 0 and <= 3,
+            nodeId =>
+            {
+                expandedNodeIds.Add(nodeId);
+                return nodeId == 0
+                    ? [new PathConnection(1, expensiveConnectionCost), new PathConnection(1, 1),
+                        new PathConnection(2, 1.5)]
+                    : [];
+            });
+        DelegateHeuristic heuristic = new((fromNodeId, _) => fromNodeId == 1 ? 1 : 0);
+        DelegateTieBreaker? tieBreaker = useTieBreaker
+            ? new((_, _, leftNodeId, rightNodeId) => leftNodeId.CompareTo(rightNodeId))
+            : null;
+        PathFinder pathFinder = new(map, heuristic, tieBreaker);
+
+        Path path = pathFinder.FindPath(0, 3, TestContext.Current.CancellationToken);
+
+        Assert.Same(Path.Empty, path);
+        Assert.Equal([0, 2, 1], expandedNodeIds);
+    }
+
+    /// <summary>
+    /// Verifies that equal-cost parent replacement preserves the estimate for a subsequent cheaper route.
+    /// </summary>
+    [Fact]
+    public void FindPath_WhenEqualCostParentChangesBeforeCheaperRoute_PreservesHeuristic()
+    {
+        TestGraph graph = new(
+            [0, 1, 2, 3, 4, 5, 6],
+            (0, 3, 1),
+            (0, 2, 1),
+            (0, 4, 0.5),
+            (0, 5, 3.75),
+            (3, 1, 1),
+            (2, 1, 1),
+            (4, 1, 1));
+        List<int> expandedNodeIds = [];
+        DelegateNodeMap map = new(graph.ContainsNode, nodeId =>
+        {
+            expandedNodeIds.Add(nodeId);
+            return graph.GetConnections(nodeId);
+        });
+        DelegateHeuristic heuristic = new((fromNodeId, _) => fromNodeId switch
+        {
+            1 => 2,
+            2 => 1,
+            4 => 2.5,
+            _ => 0
+        });
+        DelegateTieBreaker tieBreaker = new(
+            (_, _, leftNodeId, rightNodeId) => leftNodeId.CompareTo(rightNodeId));
+        PathFinder pathFinder = new(map, heuristic, tieBreaker);
+
+        Path path = pathFinder.FindPath(0, 6, TestContext.Current.CancellationToken);
+
+        Assert.Same(Path.Empty, path);
+        Assert.Equal([0, 3, 2, 4, 1, 5], expandedNodeIds);
+    }
+
+    /// <summary>
+    /// Verifies that procedural map changes and new estimates are observed between separate searches.
+    /// </summary>
+    /// <param name="useTieBreaker">Whether to exercise the search with a tie-breaker.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FindPath_WhenProvidersChangeBetweenSearches_UsesCurrentMapAndEstimates(bool useTieBreaker)
+    {
+        double connectionCost = 1;
+        double remainingCostEstimate = 1;
+        List<double> observedEstimates = [];
+        DelegateNodeMap map = new(
+            nodeId => nodeId is 0 or 1,
+            nodeId => nodeId == 0 ? [new PathConnection(1, connectionCost)] : []);
+        DelegateHeuristic heuristic = new((fromNodeId, _) =>
+        {
+            double estimate = fromNodeId == 0 ? remainingCostEstimate : 0;
+            observedEstimates.Add(estimate);
+            return estimate;
+        });
+        DelegateTieBreaker? tieBreaker = useTieBreaker
+            ? new((_, _, leftNodeId, rightNodeId) => leftNodeId.CompareTo(rightNodeId))
+            : null;
+        PathFinder pathFinder = new(map, heuristic, tieBreaker);
+
+        Path firstPath = pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken);
+        connectionCost = 2;
+        remainingCostEstimate = 2;
+        observedEstimates.Clear();
+        Path secondPath = pathFinder.FindPath(0, 1, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, firstPath.Cost);
+        Assert.Equal(2, secondPath.Cost);
+        Assert.Contains(2.0, observedEstimates);
     }
 
     /// <summary>
@@ -255,7 +391,7 @@ public sealed class PathFinderTests
     }
 
     /// <summary>
-    /// Verifies that child identifiers declared by the map are not checked through the endpoint-existence operation.
+    /// Verifies that ContainsNode is not called for connection destinations.
     /// </summary>
     [Fact]
     public void FindPath_WhenConnectionsDeclareChildren_ValidatesOnlyRequestedEndpoints()
