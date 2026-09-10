@@ -4,8 +4,9 @@ This page explains the main choices behind AStar.net's API and implementation.
 
 ## Node Identifiers
 
-Node IDs use `int` for compact storage and efficient array access. IDs only need to be unique within their map,
-so globally unique identifiers such as `Guid` are unnecessary.
+Node IDs use `int` for compact storage. IDs only need to be unique within their map,
+so globally unique identifiers such as `Guid` are unnecessary. Negative IDs and zero are valid; IDs do not need to
+form a consecutive range. The pathfinder stores search states in a dictionary rather than indexing an array by ID.
 
 Applications that use other identifiers can map them to integers in their provider.
 
@@ -35,8 +36,10 @@ AStar.net uses .NET's `PriorityQueue<TElement, TPriority>`. To improve performan
 better route to the same node is found. An internal state dictionary records the best route currently known and allows
 obsolete queue entries to be recognized and ignored when they are dequeued.
 
-Custom binary and quaternary heaps with direct priority updates were tested, but neither showed a meaningful overall
-advantage. The framework queue avoids maintaining a separate node-to-position index and requires less custom code.
+A four-way indexed heap was compared with the framework queue in complete searches. It was faster in a graph with
+many priority updates, but often slower on weighted grids, with little difference in allocations. AStar.net keeps the
+framework queue rather than adding custom heap code and a separate node-to-position index for that trade-off.
+See [Priority Queue Comparison](priority-queue-comparison.md) for the results and their limits.
 
 ## Connection Enumeration
 

@@ -82,6 +82,7 @@ state. An entry with a greater score is discarded; rounding can make old and new
 
 This keeps queue operations simple while preserving the best route in the state dictionary. The rationale and
 alternatives are documented in [Design Decisions](design-decisions.md#priority-queue).
+The [Priority Queue Comparison](priority-queue-comparison.md) records measurements from complete searches.
 
 ## Tie-Breaking Execution Path
 
