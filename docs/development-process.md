@@ -40,6 +40,6 @@ pathfinding calls should remain easy to locate and understand.
 
 ## AI-Assisted Development
 
-AI tools have helped with design discussions, code review, implementation, tests, and documentation. The project
-author directs and reviews this work and remains responsible for the code and releases. Changes are checked through
-builds, tests, package inspection, and manual use of the console demo as appropriate.
+AI tools are used to assist with design discussions, code review, implementation, testing, and documentation.
+The project author directs and reviews this work and remains responsible for the code and releases. Changes are
+validated through builds, automated tests, package inspection, and manual use of the console demo where appropriate.
