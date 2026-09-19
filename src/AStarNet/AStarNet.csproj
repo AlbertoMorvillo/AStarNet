@@ -16,18 +16,15 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>AStarLogo_128.png</PackageIcon>
-    <VersionPrefix>2.1.0</VersionPrefix>
+    <VersionPrefix>2.1.1</VersionPrefix>
     <PackageVersion>$(VersionPrefix)</PackageVersion>
     <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
     <FileVersion>$(VersionPrefix).0</FileVersion>
-    <PackageReleaseNotes>Version 2.1.0
+    <PackageReleaseNotes>Version 2.1.1
 
-    - Added public path construction from node identifiers and incoming connection costs
-    - Optimized path construction and concatenation to reduce allocations and unnecessary copies
-    - Optimized connection enumeration for arrays and lists while preserving custom IEnumerable behavior
-    - Cached heuristic estimates for the duration of each search
-    - Fixed reconstructed path costs when equal-cost parent selection changes
-    - Clarified node-map and heuristic-provider contracts</PackageReleaseNotes>
+    - Fixed squared line-deviation calculations for coincident endpoints with extreme finite candidate coordinates
+    - Improved analyzer configuration and validation documentation
+    - Clarified console demo behavior and timing guidance</PackageReleaseNotes>
     <Copyright>Copyright © 2026 Alberto Morvillo</Copyright>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
