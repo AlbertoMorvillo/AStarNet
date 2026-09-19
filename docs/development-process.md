@@ -32,6 +32,17 @@ Validation is proportional to the change. Code and project changes normally requ
 
 The GitHub Validation workflow performs restore, build, and test on demand. It does not create or publish packages.
 
+For a deeper local review, contributors can run the code-style and code-quality analyzers at informational severity:
+
+```powershell
+dotnet format style AStarNet.sln --verify-no-changes --severity info --no-restore --verbosity normal
+dotnet format analyzers AStarNet.sln --verify-no-changes --severity info --no-restore --verbosity normal
+```
+
+These commands inspect the complete solution without applying fixes. A nonzero exit code is expected when an
+applicable change is found. Each diagnostic should be reviewed in context because a suggested simplification can
+conflict with an intentional test representation or a project-specific design rule.
+
 ## Console Demo
 
 The console demo is both an example and a manual integration check. Its first responsibility is to show clearly how

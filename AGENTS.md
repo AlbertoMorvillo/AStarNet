@@ -86,5 +86,15 @@ After making changes:
 4. Run the build only after receiving explicit confirmation from the user.
 5. When a build is confirmed, restore dependencies if necessary, build the entire solution, and run the relevant
    existing tests unless the user requests a narrower validation scope.
-6. Report any build warnings or failing tests.
-7. Summarize every modified file.
+6. After the confirmed build and tests, run both of the following read-only analyzer checks unless the user requests a
+   narrower validation scope:
+
+   ```powershell
+   dotnet format style AStarNet.sln --verify-no-changes --severity info --no-restore --verbosity normal
+   dotnet format analyzers AStarNet.sln --verify-no-changes --severity info --no-restore --verbosity normal
+   ```
+
+   These commands can return a nonzero exit code when they find applicable changes. Do not apply their suggested
+   fixes automatically. Review each diagnostic against the project rules and the intent of the affected code.
+7. Report build warnings, failing tests, and analyzer diagnostics, including informational diagnostics.
+8. Summarize every modified file.
