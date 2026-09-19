@@ -98,4 +98,4 @@ grows the result buffer as needed. Completed paths retain no input collections a
 ## Synchronous Search and Cancellation
 
 `FindPath` is synchronous and can therefore be run directly or inside a task chosen by the application. It accepts a
-`CancellationToken`, checked before provider calls and while processing nodes and connections.
+`CancellationToken`, checked when the search begins and repeatedly while processing nodes and connections.

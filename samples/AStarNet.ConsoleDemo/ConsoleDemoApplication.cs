@@ -299,6 +299,7 @@ internal sealed class ConsoleDemoApplication
         int startId = this._map.GetNodeId(this._start.Value);
         int destinationId = this._map.GetNodeId(this._destination.Value);
 
+        // These single-run timings are indicative demo feedback, not benchmark measurements.
         for (int index = 0; index < this._pathfindingModes.Length; index++)
         {
             long startTimestamp = Stopwatch.GetTimestamp();

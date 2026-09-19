@@ -158,6 +158,8 @@ dotnet run --project samples/AStarNet.ConsoleDemo/AStarNet.ConsoleDemo.csproj
 ```
 
 Use the arrow keys to move the marker and follow the controls displayed beside the grid.
+Diagonal movement through adjacent wall corners is intentionally allowed. Displayed execution times are indicative
+single-run measurements, not benchmarks.
 
 ## Links
 

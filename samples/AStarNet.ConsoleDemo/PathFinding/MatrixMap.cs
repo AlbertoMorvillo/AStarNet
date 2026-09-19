@@ -153,6 +153,7 @@ internal sealed class MatrixMap : INodeMap
                     continue;
                 }
 
+                // Diagonal movement intentionally permits crossing between adjacent wall corners.
                 bool isDiagonal = deltaX != 0 && deltaY != 0;
                 double cost = isDiagonal ? Math.Sqrt(2) : 1;
                 int destinationId = (destinationY * this.Width) + destinationX;

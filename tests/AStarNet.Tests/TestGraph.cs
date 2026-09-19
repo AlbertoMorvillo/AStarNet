@@ -1,4 +1,5 @@
 using AStarNet.Maps;
+
 namespace AStarNet.Tests;
 
 /// <summary>

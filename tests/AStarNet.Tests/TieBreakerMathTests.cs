@@ -43,6 +43,34 @@ public sealed class TieBreakerMathTests
     }
 
     /// <summary>
+    /// Verifies that coincident endpoints return zero before candidate offsets can overflow.
+    /// </summary>
+    [Fact]
+    public void SquaredLineDeviation_WhenEndpointsCoincide_ReturnsZeroForExtremeCandidate()
+    {
+        double score2D = TieBreakerMath.SquaredLineDeviation2D(
+            double.MaxValue,
+            double.MaxValue,
+            double.MaxValue,
+            double.MaxValue,
+            -double.MaxValue,
+            -double.MaxValue);
+        double score3D = TieBreakerMath.SquaredLineDeviation3D(
+            double.MaxValue,
+            double.MaxValue,
+            double.MaxValue,
+            double.MaxValue,
+            double.MaxValue,
+            double.MaxValue,
+            -double.MaxValue,
+            -double.MaxValue,
+            -double.MaxValue);
+
+        Assert.Equal(0, score2D);
+        Assert.Equal(0, score3D);
+    }
+
+    /// <summary>
     /// Verifies that non-finite inputs are rejected.
     /// </summary>
     [Fact]
@@ -50,6 +78,10 @@ public sealed class TieBreakerMathTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(
             () => TieBreakerMath.SquaredLineDeviation2D(0, 0, double.PositiveInfinity, 1, 1, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => TieBreakerMath.SquaredLineDeviation2D(0, 0, 0, 0, double.NaN, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => TieBreakerMath.SquaredLineDeviation3D(0, 0, 0, 0, 0, 0, 0, 0, double.NegativeInfinity));
     }
 
     /// <summary>

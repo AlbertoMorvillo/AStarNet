@@ -125,5 +125,5 @@ admissible for that graph. Graph topology returned by the node map is treated as
 
 ## Cancellation
 
-`FindPath` is synchronous. It checks the `CancellationToken` before provider calls and while processing nodes and
-connections.
+`FindPath` is synchronous. It checks the `CancellationToken` when the search begins and repeatedly while processing
+nodes and connections.

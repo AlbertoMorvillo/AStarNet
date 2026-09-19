@@ -39,6 +39,9 @@ public static class TieBreakerMath
         TieBreakerMath.ValidateFinite(candidateX, nameof(candidateX));
         TieBreakerMath.ValidateFinite(candidateY, nameof(candidateY));
 
+        if (startX == destinationX && startY == destinationY)
+            return 0;
+
         double lineX = destinationX - startX;
         double lineY = destinationY - startY;
         double candidateOffsetX = candidateX - startX;
@@ -87,6 +90,9 @@ public static class TieBreakerMath
         TieBreakerMath.ValidateFinite(candidateX, nameof(candidateX));
         TieBreakerMath.ValidateFinite(candidateY, nameof(candidateY));
         TieBreakerMath.ValidateFinite(candidateZ, nameof(candidateZ));
+
+        if (startX == destinationX && startY == destinationY && startZ == destinationZ)
+            return 0;
 
         double lineX = destinationX - startX;
         double lineY = destinationY - startY;
