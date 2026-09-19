@@ -26,7 +26,9 @@ public sealed class PathFinderEnumerationTests
         DelegateNodeMap map = new(graph.ContainsNode, nodeId =>
         {
             expandedNodeIds.Add(nodeId);
+#pragma warning disable IDE0305 // ToArray explicitly materializes the array representation required by Represent.
             return PathFinderEnumerationTests.Represent(graph.GetConnections(nodeId)!.ToArray(), representation);
+#pragma warning restore IDE0305
         });
         DelegateTieBreaker? tieBreaker = useTieBreaker
             ? new((_, _, leftNodeId, rightNodeId) => leftNodeId.CompareTo(rightNodeId))
@@ -122,6 +124,7 @@ public sealed class PathFinderEnumerationTests
     /// <returns>The connection sequence.</returns>
     private static IEnumerable<PathConnection> Represent(PathConnection[] connections, string representation)
     {
+#pragma warning disable IDE0028, IDE0306 // The list branch must return a concrete List<T> for representation coverage.
         return representation switch
         {
             "array" => connections,
@@ -129,6 +132,7 @@ public sealed class PathFinderEnumerationTests
             "yield" => PathFinderEnumerationTests.Enumerate(connections),
             _ => throw new ArgumentOutOfRangeException(nameof(representation))
         };
+#pragma warning restore IDE0028, IDE0306
     }
 
     /// <summary>

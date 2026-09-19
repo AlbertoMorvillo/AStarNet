@@ -16,7 +16,9 @@ internal sealed class TestGraph : INodeMap
     /// <param name="edges">The directed edges represented by source, destination, and cost.</param>
     internal TestGraph(IEnumerable<int> nodeIds, params (int From, int To, double Cost)[] edges)
     {
+#pragma warning disable IDE0305 // ToHashSet makes deduplication explicit, and equivalent construction performance is not established.
         HashSet<int> identifiers = nodeIds.ToHashSet();
+#pragma warning restore IDE0305
         Dictionary<int, List<PathConnection>> connections = identifiers.ToDictionary(
             id => id,
             _ => new List<PathConnection>());

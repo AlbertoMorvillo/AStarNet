@@ -244,7 +244,9 @@ public sealed class PathFinderTests
             [2] = 1.5,
             [3] = 0
         };
+#pragma warning disable IDE0028 // The explicit constructor is equally clear, and no performance benefit is established.
         Dictionary<int, int> heuristicCallCounts = new();
+#pragma warning restore IDE0028
         DelegateHeuristic heuristic = new((fromNodeId, _) =>
         {
             heuristicCallCounts.TryGetValue(fromNodeId, out int callCount);

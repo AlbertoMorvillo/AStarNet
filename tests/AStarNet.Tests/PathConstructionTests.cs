@@ -13,7 +13,9 @@ public sealed class PathConstructionTests
     {
         (int NodeId, double CostFromPrevious)[] steps = [(10, 0), (20, 1.25), (30, 2.75)];
         Path fromArray = new(steps);
+#pragma warning disable IDE0028, IDE0306 // The test requires a concrete List<T> input distinct from the array input.
         Path fromList = new(new List<(int NodeId, double CostFromPrevious)>(steps));
+#pragma warning restore IDE0028, IDE0306
         Path fromIterator = new(steps.Select(step => step));
         Path concatenated = new Path([(10, 0), (20, 1.25)]).Concat(new Path([(20, 0), (30, 2.75)]));
         TestGraph graph = new([10, 20, 30], (10, 20, 1.25), (20, 30, 2.75));
@@ -36,7 +38,9 @@ public sealed class PathConstructionTests
     [Fact]
     public void Constructor_WithEmptyInput_ProducesEmptyPath()
     {
+#pragma warning disable IDE0301 // Array.Empty guarantees allocation-free input and exercises the constructor's array path.
         Path path = new(Array.Empty<(int NodeId, double CostFromPrevious)>());
+#pragma warning restore IDE0301
         Assert.Equal(Path.Empty, path);
         Assert.Equal(Path.Empty.GetHashCode(), path.GetHashCode());
     }
