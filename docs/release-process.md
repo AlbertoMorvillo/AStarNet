@@ -20,9 +20,13 @@ From the repository root, run:
 dotnet restore AStarNet.sln
 dotnet build AStarNet.sln --configuration Release --no-restore
 dotnet test --solution AStarNet.sln --configuration Release --no-build --no-restore
+dotnet format whitespace AStarNet.sln --verify-no-changes --no-restore --verbosity normal
+dotnet format style AStarNet.sln --verify-no-changes --severity info --no-restore --verbosity normal
+dotnet format analyzers AStarNet.sln --verify-no-changes --severity info --no-restore --verbosity normal
 ```
 
-The build must complete without errors. Warnings and test failures must be reviewed rather than ignored.
+All commands must complete successfully. Warnings, test failures, and analyzer diagnostics must be reviewed rather
+than ignored.
 
 Run the console demo manually when its behavior, library integration, or rendering has changed:
 
