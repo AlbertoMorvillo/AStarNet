@@ -50,6 +50,15 @@ Before making changes, inspect the existing project structure, architecture, and
   API boundaries, such as public signatures and properties, where abstraction provides a meaningful benefit.
 - Prefer tuple deconstruction when tuple elements are immediately consumed as separate values. Keep a named tuple
   variable when the tuple itself is passed around or treated as a single value.
+- Use collection expressions only when they preserve the intended behavior and either improve performance or are
+  certain not to reduce performance while making the code meaningfully easier to read. Never accept a performance
+  regression for a stylistic or aesthetic improvement, regardless of its size. When performance equivalence is
+  uncertain, keep the construction explicit.
+- Keep construction explicit when the code depends on a specific collection type, comparer, capacity, constructor
+  behavior, mutability, instance identity, or enumeration behavior.
+- When a collection expression targets an interface, use it only when the concrete representation does not matter.
+  Preserve explicit arrays, lists, iterators, and other representations when that distinction is part of a test.
+- Treat analyzer suggestions for collection expressions as prompts for review, not as required changes.
 
 - Before changing an existing type between `class`, `record class`, `struct`, or `record struct`, explain the reason and ask for explicit confirmation.
 - Do not use primary constructors.
@@ -86,5 +95,15 @@ After making changes:
 4. Run the build only after receiving explicit confirmation from the user.
 5. When a build is confirmed, restore dependencies if necessary, build the entire solution, and run the relevant
    existing tests unless the user requests a narrower validation scope.
-6. Report any build warnings or failing tests.
-7. Summarize every modified file.
+6. After the confirmed build and tests, run both of the following read-only analyzer checks unless the user requests a
+   narrower validation scope:
+
+   ```powershell
+   dotnet format style AStarNet.sln --verify-no-changes --severity info --no-restore --verbosity normal
+   dotnet format analyzers AStarNet.sln --verify-no-changes --severity info --no-restore --verbosity normal
+   ```
+
+   These commands can return a nonzero exit code when they find applicable changes. Do not apply their suggested
+   fixes automatically. Review each diagnostic against the project rules and the intent of the affected code.
+7. Report build warnings, failing tests, and analyzer diagnostics, including informational diagnostics.
+8. Summarize every modified file.

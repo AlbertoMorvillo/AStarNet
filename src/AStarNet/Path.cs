@@ -117,7 +117,9 @@ public sealed class Path : IEquatable<Path>
     /// <summary>
     /// Gets the shared empty path.
     /// </summary>
+#pragma warning disable IDE0301 // Array.Empty guarantees allocation-free input and selects the constructor's array path.
     public static Path Empty { get; } = new(Array.Empty<(int NodeId, double CostFromPrevious)>());
+#pragma warning restore IDE0301
 
     #endregion
 
@@ -314,6 +316,7 @@ public sealed class Path : IEquatable<Path>
     /// </summary>
     /// <param name="costFromPrevious">The incoming connection cost.</param>
     /// <param name="isFirstStep">Whether this is the first step in the path.</param>
+#pragma warning disable CA2208 // "steps" identifies the public constructor parameter validated by this helper.
     private static void ValidateStepInput(double costFromPrevious, bool isFirstStep)
     {
         if (!double.IsFinite(costFromPrevious) || costFromPrevious < 0)
@@ -322,6 +325,7 @@ public sealed class Path : IEquatable<Path>
         if (isFirstStep && costFromPrevious != 0)
             throw new ArgumentException("The first step must have zero incoming cost.", "steps");
     }
+#pragma warning restore CA2208
 
     /// <summary>
     /// Appends a step with a known valid incoming cost, checking the new total for overflow.
@@ -364,7 +368,9 @@ public sealed class Path : IEquatable<Path>
             return;
 
         if (previousEndNodeId.HasValue && previousEndNodeId != path.StartNodeId)
+#pragma warning disable CA2208 // "paths" identifies the public sequence parameter whose elements this helper appends.
             throw new ArgumentException("Consecutive paths must share their boundary node.", "paths");
+#pragma warning restore CA2208
 
         int startIndex = previousEndNodeId.HasValue ? 1 : 0;
         for (int index = startIndex; index < path.Steps.Length; index++)

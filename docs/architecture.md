@@ -118,12 +118,12 @@ AStar.net validates conditions it can determine reliably:
 - connection costs must be finite and non-negative;
 - accumulated costs and A* scores must remain finite;
 - heuristic values must be finite and non-negative;
-- provider methods must follow their documented null and collection contracts.
+- visited nodes must return non-null connection sequences.
 
 The library cannot independently verify whether a provider's graph is internally consistent or whether a heuristic is
 admissible for that graph. Graph topology returned by the node map is treated as its source of truth.
 
 ## Cancellation
 
-`FindPath` is synchronous. It checks the `CancellationToken` before provider calls and while processing nodes and
-connections.
+`FindPath` is synchronous. It checks the `CancellationToken` when the search begins and repeatedly while processing
+nodes and connections.
