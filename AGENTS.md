@@ -50,6 +50,15 @@ Before making changes, inspect the existing project structure, architecture, and
   API boundaries, such as public signatures and properties, where abstraction provides a meaningful benefit.
 - Prefer tuple deconstruction when tuple elements are immediately consumed as separate values. Keep a named tuple
   variable when the tuple itself is passed around or treated as a single value.
+- Use collection expressions only when they preserve the intended behavior and either improve performance or are
+  certain not to reduce performance while making the code meaningfully easier to read. Never accept a performance
+  regression for a stylistic or aesthetic improvement, regardless of its size. When performance equivalence is
+  uncertain, keep the construction explicit.
+- Keep construction explicit when the code depends on a specific collection type, comparer, capacity, constructor
+  behavior, mutability, instance identity, or enumeration behavior.
+- When a collection expression targets an interface, use it only when the concrete representation does not matter.
+  Preserve explicit arrays, lists, iterators, and other representations when that distinction is part of a test.
+- Treat analyzer suggestions for collection expressions as prompts for review, not as required changes.
 
 - Before changing an existing type between `class`, `record class`, `struct`, or `record struct`, explain the reason and ask for explicit confirmation.
 - Do not use primary constructors.

@@ -66,6 +66,37 @@ constraints, intent, or non-obvious trade-offs.
 Add XML documentation to classes, structs, enums, properties, constructors, and methods. Describe observable behavior,
 parameters, return values, and relevant exceptions without restating the member signature.
 
+## Collection Expressions
+
+Use a collection expression only when it preserves the intended behavior and improves performance. It can also be used
+when it is certain not to reduce performance and it makes the code meaningfully easier to read. For example:
+
+```csharp
+int[] nodeIds = [1, 2, 3];
+List<PathConnection> connections = [];
+```
+
+Never accept a performance regression to make the code shorter, more modern, or more aesthetically pleasing,
+regardless of how small the regression is. When performance equivalence is uncertain, keep the construction explicit.
+
+Keep the construction explicit when the code depends on any of the following details:
+
+- a specific collection type;
+- a custom comparer or initial capacity;
+- eager or deferred enumeration;
+- enumeration order or number of enumerations;
+- mutability or instance identity;
+- behavior provided by a particular constructor.
+
+Tests should also construct arrays, lists, and iterators explicitly when the distinction is part of what the test
+checks.
+
+Be careful when the target type is an interface such as `IEnumerable<T>`. In that case, the compiler can choose the
+concrete representation. Use a collection expression only when that representation does not matter.
+
+Treat analyzer suggestions as prompts for review, not as required changes. Apply a suggestion only after confirming
+that it preserves the intended behavior and does not introduce any performance or memory regression.
+
 ## Regions
 
 Use regions only when a class is large enough to benefit from them. When regions are useful, use this order and omit
